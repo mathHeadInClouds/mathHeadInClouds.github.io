@@ -305,6 +305,16 @@ function bodyOnload(){
     document.body.appendChild(document.createElement('br'));
     CONSOLE = document.createElement('pre');
     document.body.appendChild(CONSOLE);
-    initCodeContainer(func.toString());
+	initCodeContainer(func.toString());
+	document.body.appendChild(document.createElement('br'));
+	document.body.appendChild(document.createElement('br'));
+	var homeAnchor = document.createElement('a');
+	homeAnchor.setAttribute('href', 'index.html');
+	homeAnchor.textContent = 'home';
+	document.body.appendChild(homeAnchor);
+	document.body.appendChild(document.createElement('br'));
+	var sourceAnchor = document.createElement('a');
+	sourceAnchor.setAttribute('href', "https://github.com/mathHeadInClouds/mathHeadInClouds.github.io/blob/master/iffalseconsolelog.js");
+	sourceAnchor.textContent = 'source';
+	document.body.appendChild(sourceAnchor);
 }
-
