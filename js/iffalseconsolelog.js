@@ -314,7 +314,7 @@ function bodyOnload(){
 	document.body.appendChild(homeAnchor);
 	document.body.appendChild(document.createElement('br'));
 	var sourceAnchor = document.createElement('a');
-	sourceAnchor.setAttribute('href', "https://github.com/mathHeadInClouds/mathHeadInClouds.github.io/blob/master/iffalseconsolelog.js");
+	sourceAnchor.setAttribute('href', "https://github.com/mathHeadInClouds/mathHeadInClouds.github.io/blob/master/js/iffalseconsolelog.js");
 	sourceAnchor.textContent = 'source';
 	document.body.appendChild(sourceAnchor);
 }
