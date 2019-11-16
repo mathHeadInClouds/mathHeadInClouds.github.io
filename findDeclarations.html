@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>find declarations</title>
+
+<script src="thirdparty/esprima.js"></script>
+
+<script type="invalid" id="scriptBucket">
+var hello = 41;
+function aaaaa(p1, p2, p3){
+    var a1 = 7, a2 = 8;
+    var a3 = 9;
+    function bbbbb(q1, q2){
+        var b1 = 10, b2 = 11;
+        return 12;
+    }
+    var a4 = 99;
+    function ccccc(r1, r2, r3){
+        var c1 = 13;
+        var c2 = 14;
+        var c3 = 15, c4 = 16;
+        return 17;
+    }
+    var a5 = 88, a6 = 77;
+    function ddddd(s1){
+        return s1 === 18
+            ? function (x){ return x+1; }
+            : function (y){ return 22; }
+    }
+    return p1 + a3 <= 42 ? 55 : ccc(p1, 0, 0);
+}
+var world = 42;
+function xxxxx(x){
+    var z=0;
+    return 0;
+}
+</script>
+<script>
+    var theTextArea, outputContainer, scriptBucket;
+
+    function findDeclarations(code){
+        var ast = esprima.parse(code);
+        var funcDecls = [];
+        var globalVarDecls = [];
+        var funcStack = [];
+        function visitEachAstNode(root, enter, leave){
+            function visit(node){
+                function isSubNode(key){
+                    var child = node[key];
+                    if (child===null) return false;
+                    var ty = typeof child;
+                    if (ty!=='object') return false;
+                    if (child.constructor===Array) return ( key!=='range' );
+                    if (key==='loc') return false;
+                    if ('type' in child){
+                        if (child.type in esprima.Syntax) return true;
+                        debugger; throw new Error('unexpected');
+                    } else { return false; }
+                }
+                enter(node);
+                var keys = Object.keys(node);
+                var subNodeKeys = keys.filter(isSubNode);
+                for (var i=0; i<subNodeKeys.length; i++){
+                    var key = subNodeKeys[i];
+                    visit(node[key]);
+                }
+                leave(node);
+            }
+            visit(root);
+        }
+        function myEnter(node){
+            if (node.type==='FunctionDeclaration') {
+                var current = {
+                    name      : node.id.name,
+                    params    : node.params.map(function(p){return p.name;}),
+                    variables : []
+                }
+                funcDecls.push(current);
+                funcStack.push(current);
+            }
+            if (node.type==='VariableDeclaration'){
+                var foundVarNames = node.declarations.map(function(d){ return d.id.name; });
+                if (funcStack.length===0){
+                    globalVarDecls = globalVarDecls.concat(foundVarNames);
+                } else {
+                    var onTopOfStack = funcStack[funcStack.length-1];
+                    onTopOfStack.variables = onTopOfStack.variables.concat(foundVarNames);
+                }
+            }
+        }
+        function myLeave(node){
+            if (node.type==='FunctionDeclaration') {
+                funcStack.pop();
+            }
+        }
+        visitEachAstNode(ast, myEnter, myLeave);
+        return {
+            vars  : globalVarDecls,
+            funcs : funcDecls
+        };
+    }
+
+    function bodyOnload(){
+        theTextArea     = document.getElementById("theTextArea");
+        outputContainer = document.getElementById("outputContainer");
+        scriptBucket    = document.getElementById("scriptBucket");
+        theTextArea.value = scriptBucket.textContent;
+    }
+    function go(){
+        var sourceCode = theTextArea.value;
+        var declarationsData = findDeclarations(sourceCode);
+        outputContainer.textContent = JSON.stringify(declarationsData, null, 4);
+    }
+</script>
+</head>
+
+<body onload="bodyOnload();">
+    <textarea id="theTextArea" cols="60" rows="30"></textarea>
+    <br>
+    <button onclick="go();">find declarations</button>
+    <pre id="outputContainer"></pre>
+</body>
+</html>
