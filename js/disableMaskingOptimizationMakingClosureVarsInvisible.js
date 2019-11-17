@@ -182,6 +182,18 @@ function loliteAll(){
 	});
 }
 
+function scopeDepth(scope){
+	var result = 0;
+	while (true){
+		if (scope===null) return result;
+		++result;
+		scope = scope.upper;
+	}
+}
+function scopeChainMaxLength(analysis){
+	return Math.max.apply(null, analysis.scopes.map(scopeDepth));
+}
+
 function create_iffalse_statement(allVarsObj){
 	var allVarsArray = Object.keys(allVarsObj).filter(function(v){
 		return (v != 'arguments') && (allVarsObj[v] >= 1);
@@ -280,50 +292,6 @@ function clearCodeContainer(){ while (codeContainer.lastChild) { codeContainer.r
 function clearSwatches(){ while (swatchesParent.lastChild) { swatchesParent.removeChild(swatchesParent.lastChild); }  }
 function clearConsole(){ while (CONSOLE.lastChild) { CONSOLE.removeChild(CONSOLE.lastChild); } }
 
-function initCodeContainer________OLD(sourceString, attachClickHandler){
-	codeSpans = {};
-	activeSpan = null;
-	clearCodeContainer();
-	ast = esprima.parse(sourceString, {range: true, sourceType: 'script'});
-	analysis = escope.analyze(ast);
-	var positionsObj = {};
-	positionsObj[0] = null;
-	positionsObj[sourceString.length] = null;
-	estraverse.traverse(ast, {
-		enter: function(node, parent){
-			positionsObj[node.range[0]] = null;
-			positionsObj[node.range[1]] = null;
-		}
-	});
-	var positions = Object.keys(positionsObj).map(function(p){ return +p; });
-	var i;
-	for (i=0; i<positions.length-1; i++){
-		var startPos = positions[i];
-		var endPos = positions[i+1];
-		var codePortion = sourceString.slice(startPos, endPos);
-		var span = document.createElement('span');
-		span.textContent = codePortion;
-		codeContainer.appendChild(span);
-		span.dataset.sourceFrom = startPos;
-		span.dataset.sourceTo   = endPos;
-		if (attachClickHandler){
-			span.addEventListener('click', spanClick);
-		}
-		span.addEventListener('mouseenter', spanMouseEnter);
-		codeSpans[startPos] = span;
-	}
-	clearSwatches();
-	for (i=0; i<analysis.scopes.length; i++){
-		if (i >= colors.length){
-			colors[i] = generateColor(i);
-		}
-		var div = document.createElement('div');
-		div.classList.add('swatch');
-		div.style.backgroundColor = colors[i];
-		div.textContent = i;
-		swatchesParent.appendChild(div);
-	}
-}
 function initCodeContainer(sourceString, attachClickHandler, injectCode){
 	codeSpans = {};
 	activeSpan = null;
@@ -363,10 +331,11 @@ function initCodeContainer(sourceString, attachClickHandler, injectCode){
 		codeSpans[startPos] = span;
 	}
 	clearSwatches();
-	for (i=0; i<analysis.scopes.length; i++){
-		if (i >= colors.length){
-			colors[i] = generateColor(i);
-		}
+	var numColorsNeeded = scopeChainMaxLength(analysis);
+	while (colors.length < numColorsNeeded){
+		colors.push(generateColor(colors.length));
+	}
+	for (i=0; i<numColorsNeeded; i++){
 		var div = document.createElement('div');
 		div.classList.add('swatch');
 		div.style.backgroundColor = colors[i];
