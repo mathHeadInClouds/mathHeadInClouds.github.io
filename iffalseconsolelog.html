@@ -18,12 +18,24 @@
 <script src="thirdparty/esprima.js"></script>
 <script src="thirdparty/estraverse.browser.js"></script>
 <script src="thirdparty/escope.browser.js"></script>
-<script src="js/iffalseconsolelog.js"></script>
+<script src="js/disableMaskingOptimizationMakingClosureVarsInvisible.js"></script>
 
 </head>
 
-
 <body onload=bodyOnload();>
-    
+    <div>
+        <h2>disable "masking optimization" (making closure vars invisible)</h2>
+        <h3>by generating statement of the form "if(false){ console.log(variables, from, closure); }"</h3>
+        paste your code here<br>
+        <textarea cols="99" rows="25" id="theTextArea"></textarea><br>
+        <button id="buttonOne">single statement</button>
+        <button id="buttonAll">insert statment into every function as first instruction</button>
+        <div id="clickAnywhere" style="visibility: hidden;">click anywhere in the function for which you'd like to generate the statement</div>
+        <pre id="codeContainer"></pre>
+        <div id="swatchesParent"></div><br>
+        <pre id="CONSOLE"></pre><br>
+        <a href="index.html">home</a><br>
+        <a href="https://github.com/mathHeadInClouds/mathHeadInClouds.github.io/blob/master/js/disableMaskingOptimizationMakingClosureVarsInvisible.js">source</a>
+    </div>
 </body>
 </html>
