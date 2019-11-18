@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>what's in scope</title>
+
+    <style>
+        div.swatch {
+            width: 45px;
+            float: left;
+            text-align: center;
+        }
+        pre { tab-size: 4 }
+    </style>
+
+<script src="thirdparty/esprima.js"></script>
+<script src="thirdparty/estraverse.browser.js"></script>
+<script src="thirdparty/escope.browser.js"></script>
+<script src="js/whatsInScope.js"></script>
+
+</head>
+
+<body onload=bodyOnload();>
+    <div>
+        <h3>what's in scope</h3>
+        paste your code here<br>
+        <textarea cols="99" rows="25" id="theTextArea"></textarea><br>
+        <button id="button">go</button>
+        <pre>
+            put your mouse over the code. Variables in scope will be highlighted
+            shadowed variables will have red border
+            if the mouse is over a variable, the corresponding declaration will have black border
+        </pre>
+        <pre id="codeContainer"></pre>
+        <div id="swatchesParent"></div><br>
+        <pre id="CONSOLE"></pre><br>
+        <a href="index.html">home</a><br>
+        <a href="https://github.com/mathHeadInClouds/mathHeadInClouds.github.io/blob/master/js/whatsInScope.js">source</a><br>
+        <a href="https://stackoverflow.com/questions/2051678/getting-all-variables-in-scope">the stack overflow question being answered here</a>
+    </div>
+</body>
+</html>
