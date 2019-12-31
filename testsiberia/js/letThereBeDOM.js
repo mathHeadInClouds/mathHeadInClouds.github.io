@@ -228,7 +228,11 @@
                     var isWDT  = isWrappedDomTree(f);
                     if (keySet===null){
                         if (isWDT){
-                            return f.F(dataNode);
+                            if (action.stop){
+                                return f;
+                            } else {
+                                return f.F(dataNode);
+                            }
                         }
                         return f.apply(data, [dataNode].concat(stack).concat([idxStack]).concat([keySets]).concat([data]));
                     } else {
@@ -1143,7 +1147,11 @@
                                 if ( (child instanceof Element) || (child instanceof Text) ){
                                     retval.appendChild(child);
                                 }
-                            } else {}
+                            } else {
+                                if (type==='symbol'){
+                                    debugger; throw new Error('SYMBOL: todo');
+                                }
+                            }
                         }
                     }
                 }
@@ -1393,7 +1401,12 @@
                     var argumentIdxList = stackEntry.argumentIdxList;
                     var methodParams    = (type===1) ? stackEntry.methodParams : null;
                     var method          = drill(obj, methodNameParts);
-                    var pickedArgs      = argumentIdxList.map(function(argpos){ return ARGS[argpos]; });
+                    var pickedArgs      = argumentIdxList.map(function(argpos){
+                        if (Array.isArray(argpos)){
+                            return UTIL.drill(ARGS, argpos);
+                        }
+                        return ARGS[argpos];
+                    });
                     if (type===0){
                         nextObj = method.apply(obj, pickedArgs);
                     } else {
@@ -1667,8 +1680,9 @@
 	                console.error(handlerName);
 	                debugger; throw new Error('handler not found in library');
 	            }
-                handler.call(this, evt, keyOfDomElt(this), this, lib, heir.root, heir.nodes, heir.catalogues, heir.fn, heir.fn && heir.fn.getAncestorData(this));
-            }
+                //handler.call(this, evt, keyOfDomElt(this), this, lib, heir.root, heir.nodes, heir.catalogues, heir.fn, heir.fn && heir.fn.getAncestorData(this));
+                handler.call(this, evt, this, lib, keyOfDomElt(this), lib.fn.getAncestorData(this));
+            } // evt, elt, lib, key, ancestorData
         }
         result.E = function(eventName, handlerName){
             if (lib===null){ debugger; throw new Error('library not found'); }
@@ -1823,6 +1837,11 @@
             return tree;
         };
         result.$$ = function(){
+            var $name = this.____name;
+            if ($name&&lib&&((typeof lib)==='object')&&lib.heirs&&($name in lib.heirs)){
+                /*************** console.log('REPEAT', $name); *************************/
+                return lib.heirs[$name];
+            }
             var theTree = result.$();
             var heir = { root: theTree };
             var nodePathList = [];
@@ -1847,11 +1866,11 @@
                     if ('catalogue_target' in node.dataset){
                         catalogueTargets[node.dataset.catalogue_target] = node;
                     }
+                }
                     for (var i=0; i<node.children.length; i++){
                         var child = node.children[i];
                         traverse(child);
                     }
-                }
             }
             traverse(theTree);
             var tempKeyTreeRoot = {
@@ -1920,58 +1939,8 @@
                 heir.nodes = null;
             }
             heir.elder = lib;
-            heir.fn = {
-            	data: function(elt){
-            		if (elt instanceof Element){
-            			if ( !('____data' in elt) ){ elt.____data = {}; }
-            			return elt.____data;
-            		} else {
-            			debugger; throw new Error('illegal argument');
-            		}
-            	},
-                traverse: function(traversionRoot, onEnter, onLeave){
-                    var hasEnter = ((typeof onEnter)==='function');
-                    var hasLeave = ((typeof onLeave)==='function');
-                    function process(node){
-                        if (hasEnter){ onEnter(node); }
-                        for (var i=0; i<node.children.length; i++){
-                            var child = node.children[i];
-                            process(child);
-                        }
-                        if (hasLeave){ onLeave(node); }
-                    }
-                    process(traversionRoot);
-                },
-                append: function(appendee){
-                    if (appendee){
-                        var type = typeof appendee;
-                        if (type==='object'){
-                            if (!(appendee instanceof Element)){
-                                debugger; throw new Error('illegal argument');
-                            }
-                        } else {
-                            if (type==='string'){
-                                if ( (appendee in document) && (typeof document[appendee]==='object') && document[appendee] instanceof Element){
-                                    appendee = document[appendee];
-                                } else {
-                                    debugger; throw new Error('illegal argument');
-                                }
-                            } else {
-                                debugger; throw new Error('illegal argument');
-                            }
-                        }
-                    } else {
-                        appendee = document.body;
-                    }
-                    if (isGhost(heir.root)){
-						while (heir.root.firstChild){ appendee.appendChild(heir.root.firstChild); }
-						heir.root = appendee;
-					} else {
-						appendee.appendChild(heir.root);
-					}
-                    return heir;
-                },
-                refill: function(target){
+            function make_append_or_refill_func(theHeir, doDrain){
+                return function(target){
                     if (target){
                         var type = typeof target;
                         if (type==='object'){
@@ -1992,24 +1961,36 @@
                     } else {
                         target = document.body;
                     }
-                    UTIL.dom.drain(target);
-                    if (isGhost(heir.root)){
-						while (heir.root.firstChild){ target.appendChild(heir.root.firstChild); }
-						heir.root = target;
-					} else {
-						target.appendChild(heir.root);
-					}
-                    return heir;
-                },
-                getAncestorData: function(elt){
-                	var d = [];
-                	var target = elt;
-                	while (true){
-                		d.push(target.____data || null);
-                		target = target.parentElement;
-                		if (!target) return d;
-                	}
-                },
+                    if (doDrain){
+                        UTIL.dom.drain(target);
+                    }
+                    if (isGhost(theHeir.root)){
+                        var newRoot = [];
+                        var adoptee;
+                        while (adoptee = theHeir.root.firstChild){
+                            target.appendChild(adoptee);
+                            newRoot.push(adoptee);
+                        }
+                        theHeir.root = newRoot;
+                    } else {
+                        if (Array.isArray(theHeir.root)){
+                            theHeir.root.forEach(function(adoptee){
+                                target.appendChild(adoptee);
+                            });
+                        } else {
+                            if (theHeir.root instanceof Element){
+                                target.appendChild(theHeir.root);
+                            } else {
+                                debugger; throw new Error('illegal type for root');
+                            }
+                        }
+                    }
+                    return theHeir;
+                };
+            }
+            heir.fn = {
+                append: make_append_or_refill_func(heir, false),
+                refill: make_append_or_refill_func(heir, true ),
                 get: function(path){
                     if (!Array.isArray(path)){ debugger; throw new Error('illegal argument'); }
                     var result = heir.nodes;
@@ -2052,14 +2033,69 @@
                     }
                 }
             };
+            if (lib){
+                lib.fn = {
+                    data: function(elt){
+                        if (elt instanceof Element){
+                            if ( !('____data' in elt) ){ elt.____data = {}; }
+                            return elt.____data;
+                        } else {
+                            debugger; throw new Error('illegal argument');
+                        }
+                    },
+                    traverse: function(traversionRoot, onEnter, onLeave){
+                        var hasEnter = ((typeof onEnter)==='function');
+                        var hasLeave = ((typeof onLeave)==='function');
+                        function process(node){
+                            if (hasEnter){ onEnter(node); }
+                            for (var i=0; i<node.children.length; i++){
+                                var child = node.children[i];
+                                process(child);
+                            }
+                            if (hasLeave){ onLeave(node); }
+                        }
+                        process(traversionRoot);
+                    },
+                    getAncestorData: function(elt){
+                        var d = [];
+                        var target = elt;
+                        while (true){
+                            d.push(target.____data || null);
+                            target = target.parentElement;
+                            if (!target) return d;
+                        }
+                    }
+                };
+            }
             if (lib && lib.catalogues){
                 Object.keys(lib.catalogues).forEach(function(catName){
                     heir.fn.catalogue.refresh(catName, lib.catalogues[catName].initialItem);
                 });
             }
             if ( lib && ((typeof lib)==='object') ) {
+                /************************* console.log($name); ****************************/
+                lib.heirs = lib.heirs || {};
+                if ($name){
+                    if ($name in lib.heirs){
+                        if (heir.root===lib.heirs[$name].root){
+                            console.log('REPEAT/unexpected');
+                            debugger;
+                        } else {
+                            debugger;
+                        }
+                    } else {
+                        lib.heirs[$name] = heir;
+                    }
+                } else {
+                    if (Object.keys(lib.heirs).length>0){
+                        debugger;
+                    } else {
+                        lib.heirs.theOnlyOne = heir;
+                    }
+                }
                 lib.heir = heir;
-                heir.fn.traverse(heir.root, function(node){
+                lib.fn.traverse(heir.root, function(node){
+                    // todo: heir.root might be an array (if it ex-ghost)
                     if (node.____listeners && Array.isArray(node.____listeners)){
                         node.____listeners.filter(function(listenerData){
                             return listenerData.triggerOnCreate;
@@ -2069,10 +2105,23 @@
                         });
                     }
                 });
-                if ( (typeof lib.$onCreate)==='function' ){
-                    lib.$onCreate(heir.root, heir.nodes, heir.catalogues, heir.fn);
+                if ('$onCreate' in lib){
+                    var ty$onc = typeof lib.$onCreate;
+                    if (ty$onc==='function'){
+                        lib.$onCreate(heir.root, heir.nodes, heir.catalogues, heir.fn, $name);
+                    } else {
+                        if (ty$onc==='object'){
+                            if ($name in lib.$onCreate){
+                                lib.$onCreate[$name](lib, heir.root, heir.nodes, heir.catalogues, heir.fn);
+                            } else {
+                                /************************ console.log($name, 'no $onCreate'); ***********************/
+                            }
+                        } else {
+                            debugger; throw new Error('wrong type for $onCreate');
+                        }
+                    }
                 }
-            }
+             }
             return heir;
         }; // $$
         return result;
@@ -2207,7 +2256,13 @@
                         myArguments[pos] = val;
                     }
                 }
-                return item.apply(thisObj || null, myArguments);
+                var returnValue = item.apply(thisObj || null, myArguments);
+                /**************** if (!item.name) console.log(item); ******************/
+                var tyret = typeof returnValue;
+                if (item.name&&returnValue&&((tyret==='object')||(tyret==='function'))){
+                    returnValue.____name = item.name;
+                }
+                return returnValue;
             }
             return function(){
                 var c = curry[stepIdx];
@@ -2241,9 +2296,20 @@
                     if (broker){
                         if ((typeof broker)==='object'){
                             if (directive==='template'){
-                                Object.keys(broker).forEach(function(key){ result[key] = broker[key].template(); });
+                                Object.keys(broker).filter(function(key){return key!=='____name'}).forEach(function(key){
+                                    var ty = typeof broker[key];
+                                    if (broker[key]&&((ty==='object')||(ty==='function'))) {
+                                        if (typeof broker[key].template==='function'){
+                                            result[key] = broker[key].template();
+                                        } else {
+                                            debugger;
+                                        }
+                                    } else {
+                                        debugger;
+                                    }
+                                });
                             } else {
-                                Object.keys(broker).forEach(function(key){ result[key] = broker[key]; });
+                                Object.keys(broker).filter(function(key){return key!=='____name'}).forEach(function(key){ result[key] = broker[key]; });
                             }
                         } else {
                             debugger; throw new Error('illegal or todo');
@@ -2300,7 +2366,7 @@
 
     root.letThereBe = nodeFactory;
     root.letThereBe.dom = interpret;
-
+    root.letThereBe.keyOfDomElt = keyOfDomElt;
 
     UTIL.range = function range(start, stop, step) {
         // identical with d3.range implementation, copied from Bostock's d3 github page
