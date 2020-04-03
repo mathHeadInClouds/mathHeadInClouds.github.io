@@ -1,0 +1,1196 @@
+<!--phuturePiano2.html-->
+<html><head>
+    <meta name="author" content="Thomas Kloecker" />
+    <title>Phuture Piano</title>
+    <link href="../jQueryCss/jquery.ui.all.css" rel="stylesheet" type="text/css"/>
+    <script type="text/javascript" src="../jquery-1.5.1.min.js"></script>	
+    <script type="text/javascript" src="../jquery-ui-1.8.11.custom.min.js"></script>	
+    <script type="text/javascript" src="../googleStringTools.js"></script>
+    <script type="text/javascript" src="global.js"></script>
+    <script type="text/javascript" src="mergeSortObjects.js"></script>
+    <script type="text/javascript" src="util.js"></script>
+    <script type="text/javascript" src="htmlGeneratorTools.js"></script>
+    <script type="text/javascript" src="math.js"></script>
+    <script type="text/javascript" src="fracMath2.js"></script>
+    <script type="text/javascript" src="defaults.js"></script>
+    <script type="text/javascript" src="voronoi.js"></script>
+    <script type="text/javascript" src="phuturePiano2.js"></script>
+    <script type="text/javascript" src="tiltBChooser.js"></script>
+    <script type="text/javascript" src="odTiltChooser.js"></script>
+    <script type="text/javascript" src="errorCalculator.js"></script>
+    <script type="text/javascript" src="IntegerMatrix.js"></script>
+    <script type="text/javascript" src="phuForm.js"></script>
+    <script type="text/javascript" src="newSound.js"></script>
+<script type="text/javascript">
+</script>
+</head>
+
+<body>
+<!-- table with everything -->
+<table><tr>
+    <!-- table with top controls and the keyboard canvas -->
+    <td valign="top"><table width="1300">
+        <tr><td>
+            <div id="tabs">
+            	<ul>
+            		<li><a href="#tuning-tab"><div id="tuningLabel">Tuning</div></a></li>
+            		<li><a href="#layout-tab">Layout</a></li>
+            		<li><a href="#captions-tab">Captions</a></li>
+            	</ul>
+            	<div id="tuning-tab">
+                    <table id="tauSliderTable"></table>
+                    <table id="tau2ButtonTable"></table>
+            	</div>
+            	<div id="layout-tab">
+                    <table id="shiftZoomRotSliderTable"></table>
+                    <table id="layoutControlTable"></table>
+            	</div>
+            	<div id="captions-tab">
+                    <table id="complexitySliderTable"></table>
+                    <table id="captionTopTable"></table>
+                    <table id="captionCenterTable"></table>
+                    <table id="captionBottomTable"></table>
+            	</div>
+            </div>
+        </td></tr>
+        <tr><td>
+            <div id="canvasDiv">
+                <canvas id="keyboardCanvas" width="1300" height="700"></canvas>
+            </div>
+        </td></tr>
+    </table></td>
+    <!-- end table with top controls and the keyboard canvas -->
+    <!-- tables with right hand side infos for mouse over data and such -->
+    <td valign="top">
+    <a href="tuningsList.html">list of tunings</a>
+        <table id="matrixTable"></table>
+        <table id="matrixMoreFewerTable">
+            <tr>
+                <td><button id="increaseMaxPrimeIndexBtn" onclick="increaseMaxPrimeIndex();">more</button></td>
+                <td><button id="decreaseMaxPrimeIndexBtn" onclick="decreaseMaxPrimeIndex();">fewer</button></td>
+                <td>primes</td>
+                <td width="9px"></td>
+                <td><button id="matrixChangeBtn" onclick="matrixChange();">update</button></td>
+            </tr>
+        </table>
+        <hr id="hr1"/>
+        <button id="showHideLatticeConfigBtn" state="0" onclick="showHideLatticeConfigButtonOnClick(this);">show lattice configuration</button>
+        <div id="latticeConfigStuff">
+            <table id="latticeSliderTable"></table>
+            <table id="perfectTable"></table>
+            <button id="configGridBtn" onclick="configGrid();">2d chooser in main canvas</button>
+        </div>
+        <table id="tiltBChooserSideTable">
+            <tr id="aValueTr"><td>a: </td><td><span id="aValue"></span></td></tr>
+            <tr id="bValueTr"><td>b: </td><td><span id="bValue"></span></td></tr>
+            <tr id="octDistValueTr"><td>octave distance</td><td><span id="octDistValue"></span></td></tr>
+            <tr id="tiltValueTr"><td>tilt: </td><td><span id="tiltValue"></span></td></tr>
+            <tr id="hexagonityValueTr"><td>Hexagonity: </td><td><span id="hexagonityValue"></span></td></tr>
+            <tr id="littleCanvasTr"><td colspan="2"><canvas width="300" height="200" id="littleCanvas"></canvas></td></tr>
+        </table>
+        <hr id="hr2"/>
+        <table id="spoErrorSpreadTable">
+            <tr><td>steps per octave: </td><td><span id="stepsPerOctaveValue"></span></td></tr>
+            <tr><td>cent per step: </td><td><span id="centPerStepValue"></span></td></tr>
+            <tr><td>rms error: </td><td><span id="mseValue"></span></td></tr>
+            <tr><td>button spread: </td><td><span id="buttonSpreadValue"></span></td></tr>
+        </table>
+        <hr id="hr3"/>
+
+        <img src='loudspeaker.png'></img>
+        <button onclick='soundMouseButtonClick(this, event)' id='soundMouseBtn'>mouse</button>
+        <button onclick='soundMicButtonClick(this, event)' id='soundMicBtn'>microphone</button>
+        <button onclick='soundSilenceButtonClick(this, event)' id='soundSilenceBtn' style="background-color: rgb(128,255,128)">silence</button>
+<div id="microphoneHzLabel"></div>
+        <table id="mouseTable1">
+            <tr>
+                <td>mouse @</td>
+                <td width="7px"></td>
+                <td><span id="mouseIntCoords"></span></td>
+            </tr>
+            <tr>
+                <td colspan="3"><span id="mouseCent"></span></td>
+            </tr>
+        </table>
+        <table id="mouseTable2">
+            <tr>
+                <td>sort functions by</td>
+                <td><button id="sortByErrorBtn" onclick="sortByErrorBtnClicked();">error</button></td>
+                <td><button id="sortByComplexityBtn" onclick="sortByComplexityBtnClicked();">complexity</button></td>
+            </tr>
+            <tr>
+                <td>limit number of <br/>shown functions to</td>
+                <td id="numShownFunsInMouseTableTd"></td>
+            </tr>
+        </table>
+        <table id="mouseTable"></table>
+    </td>
+</tr></table>
+</body></html>
+
+<script type="text/javascript">
+function showLatticeConfiguration(){
+    UI.hideAlll(["mouseTable", "mouseTable1", "mouseTable2", "hr3"]);
+    UI.showAlll(["tiltBChooserSideTable", "aValueTr", "octDistValueTr", "bValueTr", "hexagonityValueTr", "tiltValueTr", "latticeConfigStuff", "littleCanvasTr"]);
+}
+function hideLatticeConfiguration(){
+    UI.hideAlll(["aValueTr", "octDistValueTr", "bValueTr", "hexagonityValueTr", "littleCanvasTr", "latticeConfigStuff"]);
+    UI.showAlll(["tiltBChooserSideTable", "tiltValueTr", "mouseTable", "mouseTable1", "mouseTable2", "hr3"]);
+}
+function showHideLatticeConfigButtonOnClick(btn){
+    var b = $(btn);
+    var newState = 1-b.attr("state");
+    b.attr("state", newState);
+    if ( newState == 1 ){
+        b.text("hide lattice configuration");
+        showLatticeConfiguration();
+        UI.showODTiltChooser();
+    } else {
+        b.text("show lattice configuration");
+        hideLatticeConfiguration();
+    }
+}
+var namedMatrices = {
+    meantoneB : [[1,0], [2,-1], [4,-4], [7,-10], [-2, 13], [ 10,-15]],
+    meantoneA  : [[1,0], [2,-1], [4,-4], [7,-10], [11,-18], [ -3, 16]],
+    magic : [[1,0], [0,5], [2,1], [-1,12], [6,-8], [11,-23]],
+    miracle : [[1,0],[1,6],[3,-7],[3,-2],[2,15],[7,-34]],
+    rodan : [[ 1, 0], [ 1, 3], [-1,17], [ 3,-1], [6,-13], [8,-22]],
+    orwell : [[1, 0], [0, 7], [3, -3], [1, 8], [3, 2]]
+};
+
+Parameters = {
+    name : "",
+    mirrored: false,
+    // possible optimal arguments: zoomMin, zoom, zoomMax, shiftXMin, shiftX, shiftXMax, shiftYMin, shiftY, shiftYMax, rotation, logComplMin, maxLogCompl, logComplMax
+    // to do : check the validity of those
+    // to do : niveau lines : include in query string optional parameters. but later: want it in cent rather than fraction of octave, or even better: array
+    // to do : octave lines : include in query string optional parameters. but later : give it as distance, or, in the ET case, of fraction of the vertical period.
+    // tau1SliderRangeInCent : ... if not supplied, default is calculated below
+    errorString : "",
+    get : function(){
+        // retrieve all parameters from querystring, and bring them into a usable format
+        // if not enough parameters are supplied, return false
+        var getParams = new GET().retrieveParams().params;
+        if ( !getParams.matrix  ){
+            this.errorString = "missing matrix";
+            return false;
+        }
+        if ( getParams.matrix[0] == "[" ){
+            getParams.matrix = eval(getParams.matrix);
+        } else {
+            if ( getParams.matrix in namedMatrices ){
+                if ( !getParams.name ){
+                    getParams.name = getParams.matrix;
+                }
+                getParams.matrix = namedMatrices[getParams.matrix];
+            }
+        }
+        if ( !is2DNumericArray(getParams.matrix) ){
+            this.errorString = "bad matrix";
+            return false;
+        }
+        callOnArray(
+            function(fieldName){
+                if ( fieldName in getParams ){
+                    var hopefullyANumber = numFromString(getParams[fieldName]);
+                    if ( hopefullyANumber != null ){
+                        getParams[fieldName] = hopefullyANumber;
+                    } else {
+                        delete getParams[fieldName];
+                    }
+                }
+            }, [
+            "tau1", "tau2", "tau2Min", "tau2Max", "a", "b", "lambda", "tilt0",
+            "zoomMin", "zoom", "zoomMax", "shiftXMin", "shiftX", "shiftXMax", "shiftYMin", "shiftY", "shiftYMax",
+            "rotation", "logComplMin", "maxLogCompl", "logComplMax", "octDist", "octDistMin", "octDistMax", "latticeMaxTanTilt",
+            "maxNumFunsInMouseTable"
+        ]);
+        if ( "mirrored" in getParams ) {
+            getParams.mirrored = ( getParams.mirrored != "false" );
+        }
+        importSecondIntoFirst(this, getParams);
+        if ( this.a      && this.a      instanceof fraction ) { this.a      = this.a.value(); }
+        if ( this.b      && this.b      instanceof fraction ) { this.b      = this.b.value(); }
+        if ( this.tau1   && this.tau1   instanceof fraction ) { this.tau1   = this.tau1.value(); }
+        if ( this.lambda && this.lambda instanceof fraction ) { this.lambda = this.lambda.value(); }
+        if ( this.tilt0  && this.tilt0  instanceof fraction ) { this.tilt0  = this.tilt0.value(); }
+        var errPoly = calculateErrorPolynomial(this.matrix);
+        this.errPoly = errPoly;
+        this.octPart = this.matrix[0][0];
+        if ( this.tau2 ){
+            if ( this.tau2 instanceof fraction ){
+                this.rationalTau2 = this.tau2;
+                this.tau2 = this.tau2.value();
+            } else {
+                this.rationalTau2 = null;
+            }
+            if ( this.tau1 ){
+                // nothing to do here, wo have both taus
+            } else {
+                if ( this.rationalTau2 ){
+                    this.tau1 = 1.0/this.octPart;
+                } else {
+                    this.tau1 = errPoly.findMinimumForFixedTau2(this.tau2);
+                }
+            }
+        } else {
+            this.rationalTau2 = null;
+            if ( this.tau1 ){
+                this.tau2 = errPoly.findMinimumForFixedTau1(this.tau1);
+            } else {
+                this.tau1 = errPoly.tau1Opt;
+                this.tau2 = errPoly.tau2Opt;
+            }
+        }
+        if ( this.tau2Min ){
+            if ( this.tau2Min instanceof fraction ){
+                this.rationalTau2Min = this.tau2Min;
+                this.tau2Min = this.tau2Min.value();
+            } else {
+                this.rationalTau2Min = null;
+            }
+        }
+        if ( this.tau2Max ){
+            if ( this.tau2Max instanceof fraction ){
+                this.rationalTau2Max = this.tau2Max;
+                this.tau2Max = this.tau2Max.value();
+            } else {
+                this.rationalTau2Max = null;
+            }
+        }
+        if ( this.tau2ButtonRats ){
+            var hopefullyAnArrayOfRationals = fraction.prototype.fracArrayFromString(this.tau2ButtonRats, true);
+            if ( hopefullyAnArrayOfRationals && hopefullyAnArrayOfRationals.length >= 2 ){
+                this.tau2ButtonRats = hopefullyAnArrayOfRationals;
+            } else {
+                delete this.tau2ButtonRats;
+            }
+        }
+        var factor = 35;
+        var factor2 = 17;
+        var widthUnit = errPoly.widthUnit;//errPoly.minMse/Math.sqrt(errPoly.d);
+        var width = factor * widthUnit;
+        var tempMin = Math.min(
+            ( this.tau2Min ? this.tau2Min : Infinity ),
+            ( this.tau2ButtonRats ? this.tau2ButtonRats[0].value() : Infinity )
+        );
+        var tau2MinTentative = false;
+        var tau2MaxTentative = false;
+        if ( tempMin > this.tau2 ){
+            this.tau2Min = errPoly.tau2Opt-width;
+            tau2MinTentative = true;
+        } else {
+            this.tau2Min = tempMin;
+        }
+        var tempMax = Math.max(
+            ( this.tau2Max ? this.tau2Max : -Infinity ),
+            ( this.tau2ButtonRats ? this.tau2ButtonRats[this.tau2ButtonRats.length-1].value() : -Infinity )
+        );
+        if ( tempMax < this.tau2 ){
+            this.tau2Max = errPoly.tau2Opt+width;
+            tau2MaxTentative = true;
+        } else {
+            this.tau2Max = tempMax;
+        }
+        if ( !this.tau2ButtonRats ){
+            var maxSPO = 40 + 1/(2*errPoly.minMse);
+            var candidates = findRationalsBetween(this.tau2Min, this.tau2Max, maxSPO);
+            for ( var i=0; i<candidates.length; i++ ){
+                var cand = candidates[i];
+                var spo = lcm(this.octPart, cand.deno); // steps per octave
+                cand.score = spo * errPoly.valueAt(1/this.octPart, cand.value());
+            }
+            mergeSortObjects2(candidates, function(arg1, arg2){ return ( arg1.score <= arg2.score ); } );
+            this.tau2ButtonRats = candidates.slice(0, 7);
+        }
+        if ( this.rationalTau2 ) this.tau2ButtonRats.push(this.rationalTau2);
+        if ( this.rationalTau2Min ) this.tau2ButtonRats.push(this.rationalTau2Min);
+        if ( this.rationalTau2Max ) this.tau2ButtonRats.push(this.rationalTau2Max);
+        mergeSortObjects(this.tau2ButtonRats);
+        this.tau2ButtonRats = removeDuplicates(this.tau2ButtonRats);
+        if ( tau2MinTentative ){
+            this.tau2Min = Math.min(this.tau2ButtonRats[0].value(), errPoly.tau2Opt - factor2*widthUnit);
+        }
+        if ( tau2MaxTentative ){
+            this.tau2Max = Math.max(this.tau2ButtonRats[this.tau2ButtonRats.length-1].value(), errPoly.tau2Opt + factor2*widthUnit);
+        }
+        // to do : better default values for a, b: look through perfect hexagons and squares
+        // optimize some function making the tilt not too big and b neither too small nor too big
+        if ( this.b ){
+            this.lambda = 0.5*Math.log(this.b);
+            this.octDist = this.octPart/Math.sqrt(this.b);
+        } else {
+            if ( this.lambda ){
+                this.b = Math.exp(2*this.lambda);
+                this.octDist = this.octPart/Math.sqrt(this.b);
+            } else {
+                if ( this.octDist ){
+                    this.b = square(this.octPart/this.octDist);
+                    this.lambda = 0.5*Math.log(this.b);
+                }
+            }
+        }
+        if ( !this.b ){
+            this.errorString = "missing b";
+            return false;
+        }
+        if ( "tilt0" in this ){
+            var tilt0 = deg2rad(this.tilt0);
+            this.a = this.tau2/this.tau1 - this.b*Math.tan(tilt0);
+            this.tilt0 = tilt0;
+        } else {
+            if ( this.a ){
+                this.tilt0 = Math.atan((this.tau2/this.tau1 - this.a) / this.b);
+            }
+        }
+        if ( !this.a ){
+            this.errorString = "missing a";
+            return false;
+        }
+        if ( !this.tau1SliderRangeInCent ){
+            this.tau1SliderRangeInCent = 1200 * 20 * errPoly.minMse/Math.sqrt(errPoly.a);
+        }
+        if ( !this.maxLogCompl ){
+            this.maxLogCompl = Math.min(5.2 + 0.3*this.errPoly.buttonSpread, 23);
+        }
+        this.tau1SliderRangeInCent = Math.max(this.tau1SliderRangeInCent, 1.5*1200*Math.abs(this.tau1 - 1/this.octPart));
+        return true;
+    }
+};
+var htmlDegreeSymbol = "&#176;";
+var htmlPiSymbol = "&#960;";
+UI = {
+    sliderWidth : 1070,
+    //tau1SliderRangeInCent : ... will be taken from Parameters
+    tau1SliderAcceleration : 5,
+    tau2SliderAcceleration : 5,
+    tau1Min : 0, tau1Val : 0, tau1Max : 0,                // tuning parameters
+    tau2Min : 0, tau2Val : 0, tau2Max : 0,
+    zoomMin : Defaults.zoomMin, zoomVal : Defaults.zoomVal, zoomMax : Defaults.zoomMax,
+    shiftXMin : Defaults.shiftXMin, shiftXVal : Defaults.shiftXVal, shiftXMax : Defaults.shiftXMax,
+    shiftYMin : Defaults.shiftYMin, shiftYVal : Defaults.shiftYVal, shiftYMax : Defaults.shiftYMax,
+    rotMin : -Math.PI, rotVal : 0, rotMax : Math.PI,      // rotation of keyboard
+    logComplMin : Defaults.logComplMin, logComplVal : Defaults.logComplVal, logComplMax : Defaults.logComplMax,   // complexity up to which functions are computed
+    epsilonMin : -1.2, epsilonVal : 0, epsilonMax : 1.2,  // adjustment of captions
+    //latticeBMinMin : Voronoi.bTo, latticeBMin : 0.005, latticeBMax : 0.08, latticeBMaxMax : 0.5,
+    octDistMinMin : Defaults.octDistMinMin, octDistMin : Defaults.octDistMin, octDistMax : Defaults.octDistMax, octDistMaxMax : Defaults.octDistMaxMax, 
+    latticeMaxTanTiltMin : Defaults.latticeMaxTanTiltMin, latticeMaxTanTiltVal : Defaults.latticeMaxTanTiltVal, latticeMaxTanTiltMax : Defaults.latticeMaxTanTiltMax, 
+    //odMin, odVal, odMax, tiltMin, tiltVal, tiltMax,
+    shiftSliderAcceleration : 2.3,
+    rotationSliderWidthDelta : -110,
+    complSliderWidthDelta : -50,
+    tau2BtnNormalFontSize : { fontSize : "12px" },
+    rotZeroTiltBtnFontSize : { fontSize : "14px" },
+    tau2BtnActiveFontSize : { fontSize : "18px" },
+    tau2BtnMediumFontSize : { fontSize : "16px" },
+    numberOfNiveauLinesOptions : [0,1,2,3,4,6,12],
+    numberOfOctaveLinesOptions : [0,1,2,3,4,5,6,8,10,12,15],
+    niveauChoiceIndex : 5,
+    octaveChoiceIndex : 5,
+    maxNumFunsInMouseTable : Defaults.maxNumFunsInMouseTable,
+    tau1InitVals : function(){
+        this.tau1Val = Parameters.tau1;
+        this.tau1SliderRangeInCent = Parameters.tau1SliderRangeInCent;
+        var delta = this.tau1SliderRangeInCent / 1200;
+        this.tau1Min = 1/Parameters.octPart - delta;
+        this.tau1Max = 1/Parameters.octPart + delta;
+    },
+    tau2InitVals : function(){
+        this.tau2Val = Parameters.tau2;
+        this.tau2Min = Parameters.tau2Min;
+        this.tau2Max = Parameters.tau2Max;
+    },
+    importOptionalArguments : function(){
+        if ( "zoomMin"     in Parameters ) this.zoomMin    = Parameters.zoomMin;
+        if ( "zoom"        in Parameters ) this.zoomVal    = Parameters.zoom;
+        if ( "zoomMax"     in Parameters ) this.zoomMax    = Parameters.zoomMax;
+        if ( "shiftXMin"   in Parameters ) this.shiftXMin  = Parameters.shiftXMin;
+        if ( "shiftX"      in Parameters ) this.shiftXVal  = Parameters.shiftX;
+        if ( "shiftXMax"   in Parameters ) this.shiftXMax  = Parameters.shiftXMax;
+        if ( "shiftYMin"   in Parameters ) this.shiftYMin  = Parameters.shiftYMin;
+        if ( "shiftY"      in Parameters ) this.shiftYVal  = Parameters.shiftY;
+        if ( "shiftYMax"   in Parameters ) this.shiftYMax  = Parameters.shiftYMax;
+        if ( "rotation"    in Parameters ) this.rotVal     = Parameters.rotation;
+        if ( "logComplMin" in Parameters ) this.logComplMin = Parameters.logComplMin;
+        if ( "maxLogCompl" in Parameters ) this.logComplVal = Parameters.maxLogCompl;
+        if ( "logComplMax" in Parameters ) this.logComplMax = Parameters.logComplMax;
+        if ( "octDistMin"  in Parameters ) this.octDistMin  = Parameters.octDistMin;
+        if ( "octDistMax"  in Parameters ) this.octDistMax  = Parameters.octDistMax;
+        if ( "latticeMaxTanTilt" in Parameters ) this.latticeMaxTanTiltVal = Parameters.latticeMaxTanTilt;
+        if ( "maxNumFunsInMouseTable" in Parameters ) this.maxNumFunsInMouseTable = Parameters.maxNumFunsInMouseTable;
+        //if ( "" in Parameters ) this. = Parameters.;
+        this.rationalTau2 = Parameters.rationalTau2;
+        this.mirrored = Parameters.mirrored;
+    },
+    init : function(){
+        var remem = ["tauSliderTable", "tau2ButtonTable", "shiftZoomRotSliderTable", "layoutControlTable", "complexitySliderTable",
+            "captionBottomTable", "captionTopTable", "captionCenterTable", "tuningLabel", "tabs", "perfectTable",
+            "canvasDiv", "keyboardCanvas", "matrixTable", "matrixMoreFewerTable", "aValue", "bValue", "octDistValue", "tiltValue", "hexagonityValue",
+            "configGridBtn", "littleCanvasTr", "littleCanvas", "hr2", "spoErrorSpreadTable", "stepsPerOctaveValue",
+            "centPerStepValue", "mseValue", "buttonSpreadValue", "hr3", "mouseTable1", "mouseIntCoords", "mouseTable",
+            "mouseCent", "mouseTable2", "sortByErrorBtn", "sortByComplexityBtn", "increaseMaxPrimeIndexBtn", "decreaseMaxPrimeIndexBtn",
+            "latticeSliderTable", "numShownFunsInMouseTableTd"
+        ];
+        for ( var i=0; i<remem.length; i++ ){ this.remember(remem[i]); }
+    },
+    makeTau2Buttons : function(tau2List){
+        this.tau2ButtonRats = tau2List;
+        var tau2Row = new HtmlGen.TR();
+        for ( var i=0; i<tau2List.length; i ++ ){
+            var rat = tau2List[i];
+            tau2Row.pushTd(HtmlGen.btn(rat.toString(), { tau2: rat.toStringSpecial() }));
+        }
+        tau2Row.pushTd(HtmlGen.btn("optimize tau2", { id: "optimizeTau2Btn"}));
+        tau2Row.pushTd(HtmlGen.btn("optimize tau1", { id: "optimizeTau1Btn"}));
+        tau2Row.pushTd(HtmlGen.btn("optimize both", { id: "optimizeBothTausBtn"}));
+        $(tau2Row.get()).appendTo(this.tau2ButtonTable);
+        for ( var i=0; i<tau2List.length; i ++ ){
+            var rat = tau2List[i];
+            var btn = $("#tau2ButtonTable button[tau2=" +rat.toStringSpecial()+ "]");
+            btn.button();
+            btn.css(this.tau2BtnNormalFontSize);
+            btn[0].onclick = this.makeTau2ButtonOnclickFun(rat);
+        }
+        this.remember("optimizeTau2Btn"); this.remember("optimizeTau1Btn"); this.remember("optimizeBothTausBtn"); 
+        this.optimizeTau1Btn.click(this.optimizeTau1BtnOnclick).css(this.tau2BtnNormalFontSize);
+        this.optimizeTau2Btn.click(this.optimizeTau2BtnOnclick).css(this.tau2BtnNormalFontSize);
+        this.optimizeBothTausBtn.click(this.optimizeBothTausBtnOnclick).css(this.tau2BtnNormalFontSize);
+    },
+    create : function(){
+        hideLatticeConfiguration();
+        this.tau1InitVals();
+        this.tau2InitVals();
+        this.matrix = Parameters.matrix;
+        this.octPart = Parameters.octPart;
+        this.errPoly = Parameters.errPoly;
+        this.a = Parameters.a;
+        this.b = Parameters.b;
+        this.lambda = Parameters.lambda;
+        this.tilt0 = Parameters.tilt0;
+        this.importOptionalArguments();
+        this.makeLatticeSliders();
+        var tLabel = "Tuning: " + ( Parameters.name || "" );
+        this.tuningLabel.html(tLabel);
+        // tauSliderTable
+        Slider.createEdgeAcceleratedSlider(this, "tau1Min", "tau1Val", "tau1Max", this.tau1SliderAcceleration, "tauSliderTable", "tau1:", "tau1Slider", this.sliderWidth, 
+            this.tau1SliderSlide, this.tau1SliderStop, this.tau1ValToHtml);
+        Slider.createEdgeAcceleratedSlider(this, "tau2Min", "tau2Val", "tau2Max", this.tau2SliderAcceleration, "tauSliderTable", "tau2:", "tau2Slider", this.sliderWidth,
+            this.tau2SliderSlide, this.tau2SliderStop, this.tau2ValToHtml);
+        // shiftZoomRotSliderTable
+        Slider.createEdgeAcceleratedSlider(this, "shiftXMin", "shiftXVal", "shiftXMax", this.shiftSliderAcceleration, "shiftZoomRotSliderTable", "shift-X:", "shiftXSlider", 
+            this.sliderWidth, this.shiftXSliderSlide, this.shiftXSliderStop, "%d", true);
+        Slider.createEdgeAcceleratedSlider(this, "shiftYMin", "shiftYVal", "shiftYMax", this.shiftSliderAcceleration, "shiftZoomRotSliderTable", "shift-Y:", "shiftYSlider", 
+            this.sliderWidth, this.shiftYSliderSlide, this.shiftYSliderStop, "%d", true);
+        Slider.createExponentialSlider(this, "zoomMin", "zoomVal", "zoomMax", "shiftZoomRotSliderTable", "zoom:", "zoomSlider", this.sliderWidth, this.zoomSliderSlide, this.zoomSliderStop, "%5.1f");
+        Slider.createLinearSlider(this, "rotMin", "rotVal", "rotMax", "shiftZoomRotSliderTable", "rotation:", "rotSlider", this.sliderWidth + this.rotationSliderWidthDelta, 
+            this.rotSliderSlide, this.rotSliderStop, this.rotSliderFormat);
+        // rearrange table row for rotation a little bit            
+        var row = $(HtmlGen.tr(""));
+        var rotationSliderRow = $("#shiftZoomRotSliderTable tr:nth-child(4)"); 
+        var detached = rotationSliderRow.children(":nth-child(3), :nth-child(4), :nth-child(5)").detach();
+        detached.appendTo(row);
+        var subTable = $(HtmlGen.table(""));
+        row.appendTo(subTable);
+        var td3 = $(HtmlGen.td("", { colspan: 3 }));
+        subTable.appendTo(td3);
+        td3.appendTo(rotationSliderRow);            
+        // make tau2 buttons    
+        this.makeTau2Buttons(Parameters.tau2ButtonRats);
+        // layoutControlTable
+        var lct = new HtmlGen.TR();
+        lct.pushTd("mirrored");
+        lct.pushTd(HtmlGen.checkbox(this.mirrored, { id: "mirroredCheckBox" }));
+        lct.pushTd("", { width : "7px" });
+        lct.pushTd("niveau lines per octave");
+        lct.pushTd(HtmlGen.select(this.numberOfNiveauLinesOptions, { id: "numNiveauLinesSelect"}));
+        lct.pushTd("", { width : "7px" });
+        lct.pushTd("octave lines (total)");
+        lct.pushTd(HtmlGen.select(this.numberOfOctaveLinesOptions, { id: "numOctaveLinesSelect"}));
+        lct.pushTd("", { width : "7px" });
+        lct.pushTd(HtmlGen.btn("set rotation zero", { id: "rotZeroBtn"}));
+        lct.pushTd(HtmlGen.btn("set rotation -tilt", { id: "rotTiltBtn"}));
+        $(lct.get()).appendTo(this.layoutControlTable);
+        document.getElementById("mirroredCheckBox").onchange = this.mirroredChange;
+        this.numNiveauLinesSelect = document.getElementById("numNiveauLinesSelect");
+        this.numNiveauLinesSelect.selectedIndex = this.niveauChoiceIndex;
+        this.numNiveauLinesSelect.onchange = this.numNiveauLinesChange;
+        this.numOctaveLinesSelect = document.getElementById("numOctaveLinesSelect");
+        this.numOctaveLinesSelect.selectedIndex = this.octaveChoiceIndex;
+        this.numOctaveLinesSelect.onchange = this.numOctaveLinesChange;
+        this.remember("rotZeroBtn"); this.remember("rotTiltBtn");
+        //this.rotZeroBtn.button();
+        //this.rotTiltBtn.button();
+        this.rotZeroBtn.click(this.rotZeroBtnClicked).css(this.rotZeroTiltBtnFontSize);
+        this.rotTiltBtn.click(this.rotTiltBtnClicked).css(this.rotZeroTiltBtnFontSize);
+        // complexitySliderTable
+        Slider.createExponentialSlider(this, "logComplMin", "logComplVal", "logComplMax", "complexitySliderTable", "maxComplexity:", "maxComplSlider", this.sliderWidth + this.complSliderWidthDelta,
+            this.maxComplSliderSlide, this.maxComplSliderStop, "%6.3f");
+        // *** captions ***
+        var capLabels = {
+            cent : "cent",
+            centModulo : "cent (mod 1200)",
+            none : "none",
+            steps : "steps",
+            stepsModulo : "steps (mod steps per octave)",
+            funs : "functions",
+            coords : "standard coordinates",
+            nCoords : "neighbour based coordinates"
+        };
+        var topCornerETChoices = ["steps", "stepsModulo", "coords", "nCoords", "none"];
+        var topCornerNonETChoices = ["coords", "nCoords", "none"];
+        var centerChoices = ["funs", "steps", "stepsModulo"];
+        var bottomCornerChoices = ["cent", "centModulo", "none"];
+        var choicess = [topCornerETChoices, topCornerNonETChoices, centerChoices, bottomCornerChoices];
+        var biggerStyle = { style : "font-size:1.3em"};
+        // captionTopTable
+        var row1 = $(HtmlGen.tr(""));
+        var row2 = $(HtmlGen.tr(""));
+        var lblTd1 = HtmlGen.td(HtmlGen.span("top corner, ET case", biggerStyle));
+        var lblTd2 = HtmlGen.td(HtmlGen.span("non-ET case", biggerStyle));
+        var radioGroup1 = HtmlGen.td(HtmlGen.makeRadioGroup("topCornerCaptionET",
+            map(function(arg){ return "topCornerCaptionET-" + arg; }, topCornerETChoices),
+            map(function(arg) { return capLabels[arg]; }, topCornerETChoices), 1
+        )); 
+        var radioGroup2 = HtmlGen.td(HtmlGen.makeRadioGroup("topCornerCaptionNonET",
+            map(function(arg){ return "topCornerCaptionNonET-" + arg; }, topCornerNonETChoices),
+            map(function(arg) { return capLabels[arg]; }, topCornerNonETChoices), 2
+        ));
+        $(lblTd1 + radioGroup1).appendTo(row1);
+        $(lblTd2 + radioGroup2).appendTo(row2);
+        row1.appendTo(this.captionTopTable); 
+        row2.appendTo(this.captionTopTable); 
+        // captionCenterTable
+        var row = $(HtmlGen.tr(""));
+        var lblTd = HtmlGen.td(HtmlGen.span("center", biggerStyle));
+        var radioGroup = HtmlGen.makeRadioGroup("centerCaption",
+            map(function(arg){ return "centerCaption-" + arg; }, centerChoices),
+            map(function(arg) { return capLabels[arg]; }, centerChoices), 0
+        );
+        $(lblTd).appendTo(row);
+        $(HtmlGen.td(radioGroup)).appendTo(row);
+        $(HtmlGen.td("", { width: "25px"})).appendTo(row);
+        $(HtmlGen.td(HtmlGen.table("", { id: "epsilonTable"}))).appendTo(row);
+        row.appendTo(this.captionCenterTable);
+        this.remember("epsilonTable");
+        Slider.createEdgeAcceleratedSlider(this, "epsilonMin", "epsilonVal", "epsilonMax", 5, "epsilonTable",
+            "adjust captions", "epsilonSlider", 400, null, this.epsilonSliderStop, " ");
+        // captionBottomTable
+        row = $(HtmlGen.tr(""));
+        lblTd = HtmlGen.td(HtmlGen.span("bottom corner", biggerStyle));
+        radioGroup = HtmlGen.makeRadioGroup("bottomCornerCaption",
+            map(function(arg){ return "bottomCornerCaption-" + arg; }, bottomCornerChoices),
+            map(function(arg) { return capLabels[arg]; }, bottomCornerChoices), 1
+        );
+        $(lblTd).appendTo(row);
+        $(HtmlGen.td(radioGroup)).appendTo(row);
+        row.appendTo(this.captionBottomTable);
+        // captions attach onchange handlers
+        var id1s = ["topCornerCaptionET", "topCornerCaptionNonET", "centerCaption", "bottomCornerCaption"];
+        for ( var i=0; i<id1s.length; i++ ){
+            var id1 = id1s[i];
+            var choices = choicess[i];
+            for ( var j=0; j<choices.length; j ++ ){
+                var id2 = choices[j];
+                var id = id1 + "-" + id2;
+                var element = document.getElementById(id); 
+                element.onchange = this.captionChoice;
+                if ( element.checked ){
+                    this[id1] = id2;
+                }
+            }
+        }
+        // matrix table
+        this.createMatrixTable(this.matrix);
+        // init tabs
+  		this.tabs.tabs({ collapsible: true });
+        // make sure values are displayed at startup
+        this.updateButtonSpread();
+        if ( this.rationalTau2 ){
+            //this.makeTau2ButtonOnclickFun(this.rationalTau2).call($("#tau2ButtonTable button[tau2=" +this.rationalTau2.toStringSpecial()+ "]")[0]); not good, calls keyboard too early (namely before init)
+            $("#tau2ButtonTable button[tau2=" +this.rationalTau2.toStringSpecial()+ "]").css(this.tau2BtnActiveFontSize);
+            this.tau1SliderSetTo(1/this.octPart);
+            this.tau2SliderSetTo(this.rationalTau2.value());
+            this.calcAndSetSPO(this.rationalTau2);
+        } else {
+            this.setSPOInfinite();
+        }
+        this.setAvalue(this.a);
+        this.setBvalue(this.b);
+        this.setTiltValue(this.tilt0);
+        this.updateMse();
+        this.makeODandTiltSliders();
+        //this.makeLatticeSliders();
+        this.makeLimitNumShownFunsInMouseTableSelect();
+        //this.makePerfectTable();
+    },
+    makeLimitNumShownFunsInMouseTableSelect : function(){
+        $(HtmlGen.select(range(3,30), { id: "numShownFunsInMouseTableSelect" })).appendTo(this.numShownFunsInMouseTableTd);
+        this.numShownFunsInMouseTableSelect = document.getElementById("numShownFunsInMouseTableSelect");
+        var firstValue = this.numShownFunsInMouseTableTd.children().children(":nth-child(1)").text()-0;
+        this.numShownFunsInMouseTableSelect.selectedIndex = this.maxNumFunsInMouseTable - firstValue;
+        this.numShownFunsInMouseTableSelect.onchange = this.numShownFunsInMouseTableSelectChange;
+    },
+    numShownFunsInMouseTableSelectChange : function(){
+        var firstValue = $(this).children(":nth-child(1)").text()-0;
+        var newValue = this.selectedIndex + firstValue;
+        UI.maxNumFunsInMouseTable = newValue;
+    },
+    makeLatticeSliders : function(){
+        this.odVal = this.octDistFromB(this.b);
+        odRangeCheck.call(this); // see phuForm.js
+        Slider.createExponentialRangeSlider(this, "octDistMinMin", "octDistMin", "octDistMax", "octDistMaxMax",
+            "latticeSliderTable", "OD-Range", "octDistRangeSlider", 200, this.octDistRangeSliderSlide,this.octDistRangeSliderStop,"%5.2f - %5.2f"
+        );
+        Slider.createExponentialSlider(this, "latticeMaxTanTiltMin", "latticeMaxTanTiltVal", "latticeMaxTanTiltMax", "latticeSliderTable",
+            "maxTanTilt", "latticeMaxTanTiltSlider", 200, this.latticeMaxTanTiltSliderSlide, this.latticeMaxTanTiltSliderStop, "%4.2f"
+        );
+    },
+    makeODandTiltSliders : function(){
+        this.latticeBMax = this.bFromOctDist(this.octDistMin);
+        this.latticeBMin = this.bFromOctDist(this.octDistMax);
+        this.odMin = this.octDistMin;
+        this.odMax = this.octDistMax;
+        this.odVal = this.octDistFromB(this.b);
+        this.tiltMax = Math.atan(this.latticeMaxTanTiltVal);
+        this.tiltMin = -this.tiltMax;
+        // this.tiltVal = should already have the same value as Keyboard.tilt via this.setTiltValue 
+        var oldOctDistSlider = $("#octDistSlider");
+        if ( oldOctDistSlider.length ){
+            oldOctDistSlider.parent().parent().remove();
+            $("#tiltSlider").parent().parent().remove();
+        }
+        Slider.createExponentialSlider(this, "odMin", "odVal", "odMax", "latticeSliderTable", "octDist", "octDistSlider", 200, this.octDistSliderSlide,this.octDistSliderStop,"%5.2f");
+        Slider.createLinearSlider(this, "tiltMin", "tiltVal", "tiltMax", "latticeSliderTable", "tilt&nbsp;&nbsp;&nbsp;", "tiltSlider", 200, this.tiltSliderSlide, this.tiltSliderStop, this.tilt2html);
+        this.addZeroTiltButton();
+    },
+    addZeroTiltButton : function(){
+        var tiltLblTd = $("#latticeSliderTable tr:nth-child(4) td:nth-child(1)");
+        $(HtmlGen.btn("=0", { id: "setTiltZeroBtn", onclick: "UI.setTiltZero();"} )).appendTo(tiltLblTd);
+    },
+    setTiltZero : function(){
+        UI.tiltSliderSetTo(0);
+        UI.tiltSliderStop();
+    },
+    tilt2html : function(value){
+        return "%5.2f".sprintf(rad2deg(value)) + htmlDegreeSymbol;
+    },
+    octDistRangeSliderSlide : function(){},
+    octDistRangeSliderStop : function(){
+        //this.makePerfectTable();
+        this.makeODandTiltSliders();
+        this.showODTiltChooser();
+    },
+    octDistSliderSlide : function(){
+        this.odtc.lineAtOctDist(this.odVal);
+    },
+    octDistSliderStop : function(){
+        this.odtc.lineAtOctDist(this.odVal);
+        var b = this.bFromOctDist(this.odVal);
+        var a = this.tau2Val/this.tau1Val - b*Math.tan(this.tiltVal);
+        Keyboard.setAB(a, b);
+        Keyboard.prepareDraw();
+        Keyboard.clearAndDraw();
+    },
+    bFromOctDist : function(od){
+        return square(this.octPart/od);
+    },
+    latticeMaxTanTiltSliderSlide : function(){},
+    latticeMaxTanTiltSliderStop : function(){
+        //this.makePerfectTable();
+        this.makeODandTiltSliders();
+        this.showODTiltChooser();
+    },
+    tiltSliderSlide : function(){
+        this.odtc.lineAtTilt(this.tiltVal);
+    },
+    tiltSliderStop : function(){
+        this.odtc.lineAtTilt(this.tiltVal);
+        var b = this.bFromOctDist(this.odVal);
+        var a = this.tau2Val/this.tau1Val - b*Math.tan(this.tiltVal);
+        Keyboard.setAB(a, b);
+        Keyboard.prepareDraw();
+        Keyboard.clearAndDraw();
+    },
+    epsilonSliderStop : function(){
+        Keyboard.epsilon = this.epsilonVal;
+        Keyboard.clearAndDraw();
+    },
+    updateButtonSpread : function(){
+        this.buttonSpreadValue.html("%8.4f".sprintf(this.errPoly.buttonSpread));
+    },
+    createMatrixTable : function(matrix, length){
+        PhuForm.createMatrixTable.call(this, matrix, length);
+    },
+    numNiveauLinesChange : function(){
+        var newNumNiveauLines = UI.numberOfNiveauLinesOptions[this.selectedIndex];
+        setNumNiveauLines(newNumNiveauLines);
+    },
+    numOctaveLinesChange : function(){
+        var newNumOctaveLines = UI.numberOfOctaveLinesOptions[this.selectedIndex];
+        setNumOctaveLines(newNumOctaveLines);
+    },
+    getNumNiveauLines : function(){
+        return this.numberOfNiveauLinesOptions[this.numNiveauLinesSelect.selectedIndex];
+    },
+    getNumOctaveLines : function(){
+        return this.numberOfOctaveLinesOptions[this.numOctaveLinesSelect.selectedIndex];
+    },
+    mirroredChange : function(){
+        UI.mirrored = this.checked;
+        setMirrored(this.checked);
+    },
+    captionChoice : function(){
+        if ( !this.checked ) return;
+        var i12 = this.id.split("-");
+        var where = i12[0];
+        var what = i12[1];  
+        UI[where] = what;
+        Keyboard[where] = Captions[what];
+        Keyboard.clearAndDraw();
+    },
+    maxComplSliderSlide : function(){},
+    maxComplSliderStop : function(){ setMaxCompl(this.logComplVal); },
+    rotZeroBtnClicked : function(){
+        UI.rotSliderSetTo(0);
+        setRotation(0);
+    },
+    rotTiltBtnClicked : function(){
+        var tilt = Keyboard.tilt;
+        UI.rotSliderSetTo(-tilt);
+        setRotation(-tilt);
+    },
+    zoomSliderSlide : function(){},
+    zoomSliderStop : function(){ setZoom(this.zoomVal); },
+    shiftXSliderSlide : function(){},
+    shiftXSliderStop : function(){ setShiftX(this.shiftXVal); },
+    shiftYSliderSlide : function(){},
+    shiftYSliderStop : function(){ setShiftY(this.shiftYVal); },
+    rotSliderSlide : function(){},
+    rotSliderStop : function(){ setRotation(this.rotVal); },
+    rotSliderFormat : function(value){
+        // htmlPiSymbol
+        var formatString = "%5.3f" + "pi" + " = %5.1f" + htmlDegreeSymbol;
+        return formatString.sprintf(value/Math.PI, rad2deg(value));
+    },
+    optimizeTau2BtnOnclick : function(){
+        var newTau2 = UI.errPoly.findMinimumForFixedTau1(UI.tau1Val);
+        UI.tau2SliderSetTo(newTau2);
+        $("#tau2ButtonTable button[tau2]").css(UI.tau2BtnNormalFontSize);
+        $(this).css(UI.tau2BtnMediumFontSize);
+        UI.optimizeTau1Btn.css(UI.tau2BtnNormalFontSize);
+        UI.optimizeBothTausBtn.css(UI.tau2BtnNormalFontSize);
+        UI.updateMse();
+        UI.setSPOInfinite();
+        Keyboard.setIrrationalTau2(newTau2);
+        tau2Aftermath();
+    },
+    optimizeTau1BtnOnclick : function(){
+        var newTau1 = UI.errPoly.findMinimumForFixedTau2(UI.tau2Val);
+        UI.tau1SliderSetTo(newTau1);
+        $("#tau2ButtonTable button[tau2]").css(UI.tau2BtnNormalFontSize);
+        $(this).css(UI.tau2BtnMediumFontSize);
+        UI.optimizeTau2Btn.css(UI.tau2BtnNormalFontSize);
+        UI.optimizeBothTausBtn.css(UI.tau2BtnNormalFontSize);
+        UI.updateMse();
+        UI.setSPOInfinite();
+        Keyboard.setTau1(newTau1);
+        tau2Aftermath();
+    },
+    optimizeBothTausBtnOnclick : function(){
+        var newTau1 = UI.errPoly.tau1Opt;
+        var newTau2 = UI.errPoly.tau2Opt;
+        UI.tau1SliderSetTo(newTau1);
+        UI.tau2SliderSetTo(newTau2);
+        $("#tau2ButtonTable button[tau2]").css(UI.tau2BtnNormalFontSize);
+        $(this).css(UI.tau2BtnMediumFontSize);
+        UI.optimizeTau1Btn.css(UI.tau2BtnNormalFontSize);
+        UI.optimizeTau2Btn.css(UI.tau2BtnNormalFontSize);
+        UI.updateMse();
+        UI.setSPOInfinite();
+        Keyboard.setToMinMse();
+        tau2Aftermath();
+    },
+    setSPOInfinite : function(){
+        var htmlInfinitySymbol = "&#8734;";
+        this.stepsPerOctaveValue.html(htmlInfinitySymbol);
+        this.centPerStepValue.html(0);
+        this.rationalTau2 = null;
+        this.spo = Infinity;
+    },
+    calcAndSetSPO : function(tau2){
+        var spo = lcm(this.octPart, tau2.deno);
+        this.stepsPerOctaveValue.html(spo);
+        this.centPerStepValue.html("%8.4f".sprintf(1200/spo));
+        this.rationalTau2 = tau2;
+        this.spo = spo;
+    },
+    makeTau2ButtonOnclickFun : function(tau2){
+        var otherButtonsSelector = "#tau2ButtonTable button[tau2!=" +tau2.toStringSpecial()+ "]";
+        return function(){
+            $(this).css(UI.tau2BtnActiveFontSize);
+            $(otherButtonsSelector).css(UI.tau2BtnNormalFontSize);
+            UI.tau1SliderSetTo(1/UI.octPart);
+            UI.tau2SliderSetTo(tau2.value());
+            UI.updateMse();
+            UI.calcAndSetSPO(tau2);
+            Keyboard.setRationalTau2(tau2);
+            tau2Aftermath();
+        }
+    },
+    setAllTau2BtnsNormalFontSize : function(){
+        $("#tau2ButtonTable button").css(UI.tau2BtnNormalFontSize);
+    },
+    tau1ValToHtml : function(value){ return "%8.3f".sprintf(1200*value); },
+    tau1SliderSlide : function(){
+        this.setAllTau2BtnsNormalFontSize();
+        this.updateMse();
+        this.setSPOInfinite();
+    },
+    tau1SliderStop : function(){
+        this.setAllTau2BtnsNormalFontSize();
+        this.updateMse();
+        this.setSPOInfinite();
+        Keyboard.setTau1(this.tau1Val);
+        tau2Aftermath();
+    },
+    tau2ValToHtml : function(value){ return "%8.4f".sprintf(1200*value); },
+    tau2SliderSlide : function(){
+        this.setAllTau2BtnsNormalFontSize();
+        this.updateMse();
+        this.setSPOInfinite();
+    },
+    tau2SliderStop : function(){
+        this.setAllTau2BtnsNormalFontSize();
+        this.updateMse();
+        this.setSPOInfinite();
+        Keyboard.setIrrationalTau2(this.tau2Val);
+        tau2Aftermath();
+    },
+    updateMse : function(){
+        this.mseValue.html("%10.4f".sprintf(1200*this.errPoly.valueAt(this.tau1Val, this.tau2Val)));
+    },
+    setAvalue : function(value){
+        this.a = value;
+        this.aValue.html("%6.5f".sprintf(value));
+    },
+    octDistFromB : function(b){
+        return this.octPart/Math.sqrt(b);
+    },
+    setBvalue : function(value){
+        this.b = value;
+        this.octDist = this.octDistFromB(value);
+        this.bValue.html("%7.6f".sprintf(value));
+        this.octDistValue.html("%5.2f".sprintf(this.octDist));
+    },
+    setTiltValue : function(value){
+        this.tiltVal = value;
+        var formatString = "%6.1f" + htmlDegreeSymbol;
+        this.tiltValue.html(formatString.sprintf(rad2deg(value)));
+    },
+    setHexagonityValue : function(value){
+        this.hexagonityValue.html("%5.4f".sprintf(value));
+    },
+    remember : function(name){
+        this[name] = $("#" + name);
+    },
+    hideElement : function(id){
+        document.getElementById(id).style.display = "none";
+    },
+    hideAlll : function(ids){
+        for ( var i=0; i<ids.length; i++ ){
+            this.hideElement(ids[i]);
+        }
+    },
+    showElement : function(id){
+        document.getElementById(id).style.display = "";
+    },
+    showAlll : function(ids){
+        for ( var i=0; i<ids.length; i++ ){
+            this.showElement(ids[i]);
+        }
+    },
+    makePerfectTable : function(){
+        // unused !
+        this.perfectTable.html("");
+        candidates = Voronoi.selectPerfect(this.tau2Val, this.tau1Val, this.latticeBMin, this.latticeBMax,this.latticeMaxTanTiltVal);
+        /*Voronoi.Perfect.prototype.lessEq = function(that){ return ( Math.abs(this.tanTilt) <= Math.abs(that.tanTilt) ); }
+        mergeSortObjects(candidates);
+        var numRows = Math.min(4, candidates.length);
+        while ( numRows < candidates.length && ( Math.abs(candidates[numRows-1].tanTilt) <= 0.8 ) ) numRows++;
+        candidates.length = numRows;*/
+        Voronoi.Perfect.prototype.lessEq = function(that){ return ( this.b >= that.b ); }
+        mergeSortObjects(candidates);
+        var th = new HtmlGen.TR();
+        th.pushAllTh(["a", "b", "tilt", "type", " "]);
+        $(th.get()).appendTo(this.perfectTable);
+        for ( var i=0; i<candidates.length; i++ ){
+            var p = candidates[i];
+            var tr = new HtmlGen.TR();
+            tr.pushTd("%6.3f".sprintf(p.a));
+            tr.pushTd("%7.5f".sprintf(p.b));
+            tr.pushTd(("%5.2f" + htmlDegreeSymbol).sprintf(rad2deg(p.tilt)));
+            tr.pushTd(p.type);
+            tr.pushTd(HtmlGen.btn("go", { id: "ab" + i }));
+            $(tr.get()).appendTo(this.perfectTable);
+        }
+        for ( var i=0; i<candidates.length; i++ ){
+            var p = candidates[i];
+            $("#ab" + i).click(this.makeSetABHandler(p.a, p.b));
+        }
+    },
+    makeSetABHandler : function(a,b){
+        return function(){
+            Keyboard.setAB(a,b);
+            Keyboard.prepareDraw();
+            Keyboard.clearAndDraw();
+        }
+    },
+    showODTiltChooser : function(){
+        gLittleCanvas = document.getElementById("littleCanvas");
+        gLittleCtx = gLittleCanvas.getContext("2d");
+        this.odtc = new odTiltChooser(gLittleCtx, Math.atan(this.latticeMaxTanTiltVal), this.octPart, this.tau2Val, this.tau1Val, this.latticeBMax, this.latticeBMin);
+        this.odtc.draw();
+        // show crosshairs
+        this.tiltSliderSlide();
+        this.octDistSliderSlide();
+    },
+    readMatrix : function(){
+        var result = new Array();
+        for ( var i=0; i<Keyboard.maxPrimeIndex; i++ ){
+            result.push([$("#matrixX" + i)[0].value-0, $("#matrixY" + i)[0].value-0]);
+        }
+        if ( !is2DIntegerArray(result) ){
+            return null;
+        }
+        if ( result[0][1] != 0 ){
+            return null;
+        }
+        if ( result[0][0] <= 0 ){
+            return null;
+        }
+        return result;
+    },
+    fillForm : function(){
+        var numPrimes = Keyboard.maxPrimeIndex;
+        var phuFo = this.formWindow.PhuForm;
+        var userInputMatrix = this.readMatrix();
+        var matrix = ( userInputMatrix ? userInputMatrix : this.matrix );
+        var matrixHasChanged = !( arraysEqual2D(this.matrix.slice(0, numPrimes), matrix) );
+        if ( !matrixHasChanged ) matrix = this.matrix;
+        phuFo.createForm({
+            name : Parameters.name,
+            computeTauStuff : matrixHasChanged,
+            matrix : matrix,
+            numPrimes : numPrimes,
+            tau1Min : this.tau1Min,
+            tau1Val : this.tau1Val,
+            tau1Max : this.tau1Max,
+            tau2Min : this.tau2Min,
+            tau2Val : this.tau2Val,
+            tau2Max : this.tau2Max,
+            shiftXMin : this.shiftXMin,
+            shiftXVal : this.shiftXVal,
+            shiftXMax : this.shiftXMax,
+            shiftYMin : this.shiftYMin,
+            shiftYVal : this.shiftYVal,
+            shiftYMax : this.shiftYMax,
+            zoomMin : this.zoomMin,
+            zoomVal : this.zoomVal,
+            zoomMax : this.zoomMax,
+            rotMin : this.rotMin,
+            rotVal : this.rotVal,
+            rotMax : this.rotMax,
+            logComplMin : this.logComplMin,
+            logComplVal : this.logComplVal,
+            logComplMax : this.logComplMax,
+            rationalTau2 : Keyboard.rationalTau2,
+            tau2ButtonRats : this.tau2ButtonRats,
+// 7. call the formgen also from tuningList
+            octDistMinMin : this.octDistMinMin,
+            octDistMin    : this.octDistMin,
+            octDistMax    : this.octDistMax,
+            octDistMaxMax : this.octDistMaxMax,
+            latticeMaxTanTiltMin : this.latticeMaxTanTiltMin,
+            latticeMaxTanTiltVal : this.latticeMaxTanTiltVal,
+            latticeMaxTanTiltMax : this.latticeMaxTanTiltMax,
+            odMin : this.odMin,
+            odVal : this.odVal,
+            odMax : this.odMax,
+            tiltMin : this.tiltMin,
+            tiltVal : this.tiltVal,
+            tiltMax : this.tiltMax,
+            mirrored : this.mirrored,
+            maxNumFunsOnButtons : Keyboard.maxNumFunsOnButtons,
+            maxNumFunsInMouseTable : this.maxNumFunsInMouseTable
+        });
+    }
+};
+UI.init();
+
+function matrixChange(){
+    //UI.formWindow = window.open("form.html", "_blank", "width=1400");
+    UI.formWindow = window.open("form.html", "_blank");
+}
+function tau2Aftermath(){
+    Keyboard.calcTilt();
+    Keyboard.calcNormalVecOfNiveauLines();
+    Keyboard.calcMinMaxPitch();
+    Keyboard.calcNiveauLines();
+    Keyboard.prepareDraw3(); // actually doesn't need to be called, if new and old tau2 values are both irrational 
+    Keyboard.clearAndDraw();
+}
+function setShiftX(newValue){
+    Keyboard.shiftX = newValue;
+    Keyboard.prepareDraw2n3();
+    Keyboard.clearAndDraw();
+}
+function setShiftY(newValue){
+    Keyboard.shiftY = newValue;
+    Keyboard.prepareDraw2n3();
+    Keyboard.clearAndDraw();
+}
+function setZoom(newValue){
+    if ( Keyboard.zoom == newValue ) return;
+    Keyboard.zoom = newValue;
+    Keyboard.calcMat();
+    Keyboard.prepareDraw();
+    Keyboard.clearAndDraw();    
+}
+function setRotation(newValue){
+    Keyboard.setRotation(newValue);
+    Keyboard.calcMat();
+    Keyboard.prepareDraw();
+    Keyboard.clearAndDraw();
+}
+function setMirrored(newValue){
+    if ( Keyboard.mirrored == newValue ) return;
+    Keyboard.setMirrored(newValue);
+    Keyboard.calcNormalVecOfNiveauLines();
+    Keyboard.calcMat();
+    Keyboard.prepareDraw();
+    Keyboard.clearAndDraw();
+}
+function setNumNiveauLines(newValue){
+    if ( Keyboard.numNiveauLines == newValue ) return;
+    Keyboard.numNiveauLines = newValue;
+    Keyboard.calcNiveauLines();
+    Keyboard.clearAndDraw();
+}
+function setNumOctaveLines(newValue){
+    if ( Keyboard.numOctaveLines == newValue ) return;
+    Keyboard.numOctaveLines = newValue;
+    Keyboard.calcOctaveLines();
+    Keyboard.clearAndDraw();
+}
+function setMaxPrimeIndex(newValue){
+    if ( Keyboard.maxPrimeIndex == newValue ) return;
+    Keyboard.maxPrimeIndex = newValue;
+    UI.createMatrixTable(UI.matrix, newValue);
+    Parameters.errPoly = UI.errPoly = Keyboard.errPoly = calculateErrorPolynomial(UI.matrix, newValue);
+    UI.updateMse();
+    UI.updateButtonSpread();
+    Keyboard.prepareDraw3();
+    Keyboard.clearAndDraw();
+}
+function increaseMaxPrimeIndex(){
+    if ( Keyboard.maxPrimeIndex >= primes.length || Keyboard.maxPrimeIndex >= Keyboard.matrix.length ){
+        return;
+    }
+    setMaxPrimeIndex(Keyboard.maxPrimeIndex + 1);
+}
+function decreaseMaxPrimeIndex(){
+    if ( Keyboard.maxPrimeIndex <= 2 ){
+        return;
+    }
+    setMaxPrimeIndex(Keyboard.maxPrimeIndex - 1);
+}
+function setMaxCompl(value){
+    Keyboard.maxComplexity = Math.exp(value);
+    Keyboard.prepareDraw3();
+    Keyboard.clearAndDraw();
+}
+function sortByComplexityBtnClicked(){
+    fracErr.prototype.lessEq = SortFracErr.byComplexity;
+}
+function sortByErrorBtnClicked(){
+    fracErr.prototype.lessEq = SortFracErr.byError;
+}
+function configGrid(){
+    UI.hideAlll(["matrixTable", "matrixMoreFewerTable", "hr1", "hr2", "spoErrorSpreadTable",
+        "hr3", "mouseTable", "mouseTable1", "mouseTable2", "tabs", "configGridBtn",
+        "showHideLatticeConfigBtn", "latticeConfigStuff"
+    ]);
+    UI.showAlll(["tiltBChooserSideTable", "aValueTr", "bValueTr", "octDistValueTr", "hexagonityValueTr", "tiltValueTr"]);
+    gLittleCanvas = document.getElementById("littleCanvas");
+    gLittleCtx = gLittleCanvas.getContext("2d");
+    gTiltBChooser = new tiltBChooser(Keyboard.ctx, gLittleCtx, Math.atan(UI.latticeMaxTanTiltVal), Keyboard.octavePartition, Keyboard.tau2, Keyboard.tau1, UI.latticeBMax, UI.latticeBMin);
+    gTiltBChooser.draw();
+    UI.showElement('littleCanvasTr');
+    $(document).unbind("mousemove");
+    $(document).mousemove(tiltBChooserMouse.onMouseMove);
+    setTimeout(function(){ $(document).click(tiltBChooserMouse.onClick); }, 1);
+}
+function gridConfigDone(a, b){
+    $(document).unbind("click");
+    $(document).unbind("mousemove");
+    Keyboard.setAB(a, b);
+    UI.hideElement("littleCanvasTr");
+    var btn = $("#showHideLatticeConfigBtn");
+    btn.attr("state", 0);
+    btn.text("show lattice configuration");
+    UI.showAlll([
+        "matrixTable", "matrixMoreFewerTable", "hr1", "hr2", "spoErrorSpreadTable",
+        "hr3", "mouseTable", "mouseTable1", "mouseTable2", "tabs", "configGridBtn",
+        "showHideLatticeConfigBtn"
+    ]);
+    Keyboard.prepareDraw();
+    Keyboard.clearAndDraw();
+    $(document).mousemove(mouse.onMouseMove);
+}
+
+mouse = {
+    onMouseMove : function(evt){
+        mouse.updatePos(evt);
+        if (soundObj){
+            soundObj.oscillator.frequency.value = getCurrentFrequency();
+        }
+        var mouseIntCoords = Keyboard.mouseIntCoordsFromMouseGraphicsCoords(mouse.x, mouse.y);
+        var otherMc = Keyboard.mouseIntNeighbourCoords;
+        UI.mouseIntCoords.html(arrayToString(mouseIntCoords) + " | " + arrayToString(otherMc));
+        UI.mouseCent.html("%8.3f".sprintf(1200*Keyboard.getPitchAtVec(mouseIntCoords)) + HtmlSymbols.cent); 
+        var headerRow = HtmlGen.makeTableHeaderRow(["function", "&nbsp;&nbsp;error&nbsp;&nbsp;", "original", "consistent"]);
+        UI.mouseTable.html("");
+        $(headerRow).appendTo(UI.mouseTable);
+        var funErrList = Keyboard.getFunErrListAt(mouseIntCoords);
+        for ( var i=0; i<funErrList.length; i++ ){
+            var fe = funErrList[i];
+            var fraction = fe.fr;
+            var error = fe.err;
+            var orig = ( fraction.original ? "yes" : "no" );
+            var consistent = ( fe.consistent ? ( fe.ETconsistent ? "very much": "yes" ) : "no" );
+            var row = HtmlGen.makeTableRow([fraction.toString(), ("%8.3f" + HtmlSymbols.cent).sprintf(error), orig, consistent], [{}, {align:"right", width:"25%"}, {align:"center"}, {align:"center"}]);
+            $(row).appendTo(UI.mouseTable);
+        }
+    },
+    updatePos : function(evt){
+    	var canvasMinX = UI.canvas.offset().left;
+    	var canvasMinY = UI.canvas.offset().top;
+    	this.x = evt.pageX - canvasMinX;
+    	this.y = evt.pageY - canvasMinY;
+    }
+}
+
+if ( Parameters.get() ){
+    UI.create();
+    if ( Keyboard.init() ){
+        Keyboard.prepareDraw();
+        Keyboard.draw();
+        $(document).mousemove(mouse.onMouseMove);
+    } else {
+        alert(Keyboard.errorString);
+    }
+} else {
+    alert(Parameters.errorString);
+}
+</script>
