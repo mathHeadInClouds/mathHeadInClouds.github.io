@@ -1,0 +1,164 @@
+<html>
+
+<head>
+<title>matrix wizard</title>
+<link href="../jQueryCss/jquery.ui.all.css" rel="stylesheet" type="text/css"/>
+<link href="tuningList.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="../jquery-1.5.1.min.js"></script>
+<script type="text/javascript" src="../jquery-ui-1.8.11.custom.min.js"></script>	
+<script type="text/javascript" src="htmlGeneratorTools.js"></script>
+<script type="text/javascript" src="../googleStringTools.js"></script>
+<script type="text/javascript" src="util.js"></script>
+<script type="text/javascript" src="manualTuningConfig.js"></script>
+<script type="text/javascript" src="global.js"></script>
+<script type="text/javascript" src="fracMath2.js"></script>
+<script type="text/javascript" src="math.js"></script>
+<script type="text/javascript" src="errorCalculator.js"></script>
+<script type="text/javascript" src="IntegerMatrix.js"></script>
+<script type="text/javascript" src="phuForm.js"></script>
+<script type="text/javascript" language="javascript">
+
+function FilterCriterion(f, x, y){
+    this.f = f;
+    this.x = x;
+    this.y = y;
+}
+UI = {
+    makeFilterTable : function(){
+        this.filterTable.html(HtmlGen.caption("generate matrix from fraction " + HtmlSymbols.rightArrow + " location"));
+        var headerRow = new HtmlGen.TR();
+        headerRow.pushAllTh(["active", "fraction", "2", "3", "5", "7", "11", "", "x", "y", "remove"]);
+        $(headerRow.get()).appendTo(this.filterTable);
+        for ( var i=0; i<5; i++ ){
+            this.addFilterRow();
+        }
+    },
+    addFilterRow : function(){
+        var row = new HtmlGen.TR();
+        row.pushTd(HtmlGen.checkbox(false, {id: "filterCheck" + this.filterRowCount, index: this.filterRowCount, onchange: "UI.filterRowActivatedChange(this)"}));
+        row.pushTd(HtmlGen.text({ id: "filterFraction" + this.filterRowCount, size: 12}));
+        for ( var i=0; i<5; i++ ){
+            row.pushTd(HtmlGen.text({ id: "filterExpon" + this.filterRowCount + "primeIndex" + i, size: 3}));
+        }
+        row.pushTd(HtmlSymbols.rightArrow);
+        row.pushTd(HtmlGen.text({ id: "filterX" + this.filterRowCount, size: 3}));
+        row.pushTd(HtmlGen.text({ id: "filterY" + this.filterRowCount, size: 3}));
+        row.pushTd(HtmlGen.inputBtn(" ", { id: "filterRemoveBtn" + this.filterRowCount, onclick: "UI.removeFilterRow(this)", index: this.filterRowCount}));
+        $(row.get()).appendTo(this.filterTable);
+        this.filterRowCount++;
+    },
+    removeFilterRow : function(btn){
+        var doomed = $(btn).attr("index") - 0;
+        delete this.filterCriteria[doomed];
+        $(btn).parent().parent().remove();
+    },
+    getFilterCriterion : function(index){
+        var xString = document.getElementById("filterX" + index).value;
+        var yString = document.getElementById("filterY" + index).value;
+        if ( xString.length == 0 || !isInteger(xString) || yString.length == 0 || !isInteger(yString) ){
+            return { error : "x and y must be integers" };
+        }
+        var x = xString - 0;
+        var y = yString - 0;
+        var fracString = document.getElementById("filterFraction" + index).value;
+        var f = frac.prototype.fromString(fracString, 5);
+        if ( f ){
+            for ( var i=0; i<5; i++ ){
+                document.getElementById("filterExpon" + index + "primeIndex" + i).value = f.expons[i];
+            }
+        } else {
+            var expons = [];
+            for ( var i=0; i<5; i++ ){
+                var str = document.getElementById("filterExpon" + index + "primeIndex" + i).value;
+                if ( str.length == 0 || !isInteger(str) ){
+                    return { error : "either enter a valid fraction or integer exponents" };
+                }
+                var expo = str - 0;
+                expons.push(expo);
+            }
+            f = fracFromExpons(expons);
+            document.getElementById("filterFraction" + index).value = f.toString();
+        }
+        return new FilterCriterion(f, x, y);
+    },
+    filterRowActivatedChange : function(check){
+        var index = $(check).attr("index") - 0;
+        if ( check.checked ){
+            var filterCrit = this.getFilterCriterion(index);
+            if ( "error" in filterCrit ){
+                alert(filterCrit.error);
+                delete this.filterCriteria[index];
+            } else {
+                this.filterCriteria[index] = filterCrit;
+            }
+        } else {
+            delete this.filterCriteria[index];
+        }
+    },
+    init : function(){
+        this.filterTable = $("#filterTable");
+        this.filterRowCount = 0;
+        this.filterCriteria = {};
+        this.makeFilterTable();
+    },
+    makeMatrix : function(){
+        var filterChecks = $("#filterTable input[type='checkbox']");
+        for ( var i=0; i<filterChecks.length; i++ ){
+            UI.filterRowActivatedChange(filterChecks[i]);
+        }
+        var xy = [];
+        var mat0 = [];
+        for ( var index in this.filterCriteria ){
+            var crit = this.filterCriteria[index];
+            mat0.push(crit.f.expons);
+            xy.push([crit.x, crit.y]);
+        }
+        if ( mat0.length != 5 ){
+            alert("error");
+            return;
+        }
+        matrix0 = new IntegerMatrix(transposeMat(mat0));
+        trafoMat = matrix0.inverse();
+        if ( !trafoMat ){
+            alert("invalid or singular matrix");
+            return;
+        }
+        var resultMat = transposeMat(trafoMat.multiplyFromLeftWithMat(transposeMat(xy)));
+        document.getElementById("resultMat1").value = array2dToString(resultMat);
+        normalizeTuningMatStep1(resultMat);
+        document.getElementById("resultMat2").value = array2dToString(resultMat);
+        normalizeTuningMatStep2(resultMat);
+        document.getElementById("resultMat3").value = array2dToString(resultMat);
+    },
+    test : function(){
+        document.getElementById("filterFraction0").value = "5/4"; 
+        document.getElementById("filterFraction1").value = "6/5";
+        document.getElementById("filterFraction2").value = "7/6";
+        document.getElementById("filterFraction3").value = "11/10";
+        document.getElementById("filterFraction4").value = "4/3";
+        document.getElementById("filterX0").value = 1; document.getElementById("filterY0").value = -5;  
+        document.getElementById("filterX1").value = 0; document.getElementById("filterY1").value = 2;  
+        document.getElementById("filterX2").value = -1; document.getElementById("filterY2").value = 9;  
+        document.getElementById("filterX3").value = 0; document.getElementById("filterY3").value = 1;  
+        document.getElementById("filterX4").value = 0; document.getElementById("filterY4").value = 3;  
+    }
+}
+</script>
+    
+</head>
+
+<body>
+    <table id="filterTable"></table>
+    <button onclick="UI.makeMatrix();">generate matrix</button>&nbsp;
+    <br/>unnormalized<br/>
+    <textarea id="resultMat1"></textarea>
+    <br/>normalized, step 1<br/>
+    <textarea id="resultMat2"></textarea>
+    <br/>normalized, step 2<br/>
+    <textarea id="resultMat3"></textarea>
+</body>
+</html>
+<script type="text/javascript" language="javascript">
+UI.init();
+UI.test();
+</script>

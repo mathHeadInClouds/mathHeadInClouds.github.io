@@ -1,0 +1,876 @@
+<html>
+
+<head>
+<link href="../jQueryCss/jquery.ui.all.css" rel="stylesheet" type="text/css"/>
+<link href="tuningList.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="../jquery-1.5.1.min.js"></script>
+<script type="text/javascript" src="../jquery-ui-1.8.11.custom.min.js"></script>	
+<script type="text/javascript" src="htmlGeneratorTools.js"></script>
+<script type="text/javascript" src="../googleStringTools.js"></script>
+<script type="text/javascript" src="../jsMath/easy/load.js"></script>
+<script type="text/javascript" src="mergeSortObjects.js"></script>
+<script type="text/javascript" src="util.js"></script>
+<script type="text/javascript" src="manualTuningConfig.js"></script>
+<script type="text/javascript" src="global.js"></script>
+<script type="text/javascript" src="fracMath2.js"></script>
+<script type="text/javascript" src="commata.js"></script>
+<script type="text/javascript" src="math.js"></script>
+<script type="text/javascript" src="IntegerMatrix.js"></script>
+<script type="text/javascript" src="phuForm.js"></script>
+<script type="text/javascript" language="javascript">
+//rows = $("#tuningsList")[0].children[0].children;
+//rows = $("#tuningsList>tbody>tr");
+var useJsMath = true;
+var nameAssArr = new Array();
+function setKernelClass(kClass){
+    var classNames = ["inKernel",  "notInKernel", "whetherInKernel", "impliedInKernel", "impliedNotInKernel"];
+    var validName = false;
+    for ( var i=0; i<classNames.length; i++ ){
+        var cName = classNames[i];
+        if ( cName == kClass ){
+            validName = true;
+        } else {
+            this.removeClass(cName);
+        }
+    }
+    if ( !validName ){
+        return;
+    }
+    this.addClass(kClass);
+}
+function giveName(name, matrix){
+    nameAssArr[matrix] = name;
+}
+function FilterCriterion(f, x, y){
+    this.f = f;
+    this.x = x;
+    this.y = y;
+}
+UI = {
+    orderBy : "rank",
+    rankPara : 0.625,
+    //errorSliderMinMin, errorSliderMaxMax, errorSliderMin : set after data is read
+    errorSliderMax : 20.0,
+    //spreadSliderMinMin, spreadSliderMaxMax, spreadSliderMin : set after data is read
+    spreadSliderMax : 30.0,
+    rankParaMin : 0,
+    rankParaMax : 1,
+    commataPerRow : 10,
+    orderCommasBy : "error",
+    //UITable, commaTable, commaTableLeft, commaTableRight
+    showCommaTable : function(){
+        UI.commaTable.show();
+        $("#showCommaTableBtn").hide();
+    },
+    hideCommaTable : function(){
+        UI.commaTable.hide();
+        $("#showCommaTableBtn").show();
+    },
+    makeCommaTableHeader : function(){
+        var headings = ["show", "name", "value", "catch phrase", "size", "2", "3", "5", "7", "11"];
+        // make first row with grand heading and remove button
+        var multiCol = { colspan: headings.length };
+        var hideBtn = HtmlGen.btn("hide this table", { id: "hideCommaTableBtn" });
+        var hideBtnTd = HtmlGen.td(hideBtn, { width: "22%" });
+        var grandTableHeadingTh = HtmlGen.th("Choose commas for filtering");
+        var firstRowTable = HtmlGen.table(HtmlGen.tr(hideBtnTd + grandTableHeadingTh), { width: "100%" });
+        $(HtmlGen.tr(HtmlGen.td(firstRowTable, multiCol))).appendTo(this.commaTableLeft);
+        var mustBox = HtmlGen.span(HtmlGen.checkbox(true, { id: "showMustCommas"}, "musts"), { "class": "inKernel"});
+        var mustNotBox = HtmlGen.span(HtmlGen.checkbox(true, { id: "showMustNotCommas"}, "mustn'ts"), { "class": "notInKernel"});
+        var whetherBox = HtmlGen.span(HtmlGen.checkbox(true, { id: "showWhetherCommas"}, "whethers"), { "class": "whetherInKernel"});
+        var otherBox = HtmlGen.checkbox(false, { id: "showOtherCommas"}, "others");
+        var space = " &nbsp; ";
+        var space2 = space + space;
+        var boxes = "show" + space + mustBox + space + mustNotBox + space + whetherBox + space + otherBox;
+        var sortByErrorBtn = HtmlGen.btn("size", { id: "sortCommasByErrorBtn" });
+        var sortByComplexityBtn = HtmlGen.btn("complexity", { id: "sortCommasByComplexityBtn" });
+        var sortAlphabeticallyBtn = HtmlGen.btn("alphabet", { id: "sortCommasAlphabeticallyBtn" });
+        var sortBtns = "sort by " + space + sortByErrorBtn + space + sortByComplexityBtn + space + sortAlphabeticallyBtn;
+        var rowHtml = boxes + space2 + sortBtns;
+        $(HtmlGen.tr(HtmlGen.td(rowHtml, multiCol))).appendTo(this.commaTableLeft);
+        $(HtmlGen.makeTableHeaderRow(headings)).appendTo(this.commaTableLeft);
+        document.getElementById("showMustCommas").onclick = this.remakeCommaTable;
+        document.getElementById("showMustNotCommas").onclick = this.remakeCommaTable;
+        document.getElementById("showWhetherCommas").onclick = this.remakeCommaTable;
+        document.getElementById("showOtherCommas").onclick = this.remakeCommaTable;
+        document.getElementById("sortCommasByErrorBtn").onclick = this.makeCommaTableSortBtnHandler(commaLessEqByError);
+        document.getElementById("sortCommasByComplexityBtn").onclick = this.makeCommaTableSortBtnHandler(commaLessEqByComplexity);
+        document.getElementById("sortCommasAlphabeticallyBtn").onclick = this.makeCommaTableSortBtnHandler(commaLessEqAlphbetically);
+        document.getElementById("hideCommaTableBtn").onclick = this.hideCommaTable;
+        document.getElementById("showCommaTableBtn").onclick = this.showCommaTable;
+    },
+    makeCommaTableSortBtnHandler : function(sortFun){
+        return function(){
+            comma.prototype.lessEq = sortFun;
+            UI.makeCommaTable();
+        }
+    },
+    makeCommaTable : function(){
+        // delete old stuff, if there
+        $("#commaTableLeft tr[forcomma]").remove();
+        $("#commaTableRight tr[forcomma]").remove();
+        // find out which commas will be shown in filter table
+        var rowObjs = new Array();
+        var numRows = 0;
+        for ( var c in Commata ){
+            if ( typeof Commata[c] == "function" ) continue;
+            var myComma = Commata[c];
+            var includeMusts = document.getElementById("showMustCommas").checked;
+            var includeMustnts = document.getElementById("showMustNotCommas").checked;
+            var includeWhethers = document.getElementById("showWhetherCommas").checked;
+            var includeOthers = document.getElementById("showOtherCommas").checked; // those which are not columns in the main table
+            var must = myComma.mustBeInKernel;
+            var mustNot = myComma.mustNotBeInKernel;
+            var whether = myComma.showing && (!must) && (!mustNot);
+            var other = !( must || mustNot || whether );
+            var iWantIt = (
+                ( must && includeMusts ) ||
+                ( mustNot && includeMustnts ) ||
+                ( whether && includeWhethers ) ||
+                ( other && includeOthers )
+            );
+            if ( iWantIt ){
+                rowObjs.push(myComma);
+                numRows++;
+            }
+        }
+        // sort
+        mergeSortObjects(rowObjs);
+        // finally, make the table
+        for ( var i=0; i<rowObjs.length; i++ ){
+            var myComma = rowObjs[i];
+            var c = myComma.id;
+            var row = $(HtmlGen.nodeWithAtts("tr", "", { forComma: c }));
+            $(HtmlGen.td(HtmlGen.checkbox(myComma.showing, {id: c + "CheckBox"}))).appendTo(row);
+            $(HtmlGen.td(myComma.name)).appendTo(row);
+            var fracValue = myComma.val;
+            var fracString;
+            if ( false && fracValue.deno <= 1e8 ){ // table gets uneven, so, for now, make always the text box, so the "false &&"
+                fracString = fracValue.toString();
+            } else {
+                if ( fracValue.deno <= 1e15 ){
+                    fracString = HtmlGen.nodeWithAtts("input", "", { type: "text", value: fracValue.toString(), readonly: "yes", size: 18 })
+                } else {
+                    //fracString = "int overflow";
+                    fracString = HtmlGen.nodeWithAtts("input", "", { type: "text", value: "int overflow", readonly: "yes", size: 18 })
+                }
+            }
+            $(HtmlGen.td(fracString)).appendTo(row);
+            $(HtmlGen.td(myComma.explanation)).appendTo(row);
+            $(HtmlGen.td(myComma.val.toCentString())).appendTo(row);
+            $(HtmlGen.td(myComma.vec[0])).appendTo(row);
+            $(HtmlGen.td(myComma.vec[1])).appendTo(row);
+            $(HtmlGen.td(myComma.vec[2])).appendTo(row);
+            $(HtmlGen.td(myComma.vec[3])).appendTo(row);
+            $(HtmlGen.td(myComma.vec[4])).appendTo(row);
+            if ( 2*i + 3 < numRows ){
+                row.appendTo(this.commaTableLeft);
+            } else {
+                row.appendTo(this.commaTableRight);
+            }
+        }
+        // set handlers and styles 
+        for ( var c in Commata ){
+            if ( typeof Commata[c] == "function" ) continue;
+            var myComma = Commata[c];
+            var cb = document.getElementById( c + "CheckBox");
+            if ( !cb ) continue; 
+            cb.onclick = this.makeCheckBoxOnClickHandler(c);
+            if ( Commata[c].showing ){
+                if ( myComma.mustBeInKernel ){
+                    setKernelClass.call($("tr[forComma=" +c+ "]"), "inKernel");
+                    continue;
+                }
+                if ( myComma.mustNotBeInKernel ){
+                    setKernelClass.call($("tr[forComma=" +c+ "]"), "notInKernel");
+                    continue;
+                }
+                setKernelClass.call($("tr[forComma=" +c+ "]"), "whetherInKernel");
+            } else {
+                setKernelClass.call($("tr[forComma=" +c+ "]"), "invalid");
+            }
+        }
+    },
+    remakeCommaTable : function(){
+        UI.makeCommaTable();
+    },
+    makeCheckBoxOnClickHandler : function(c){
+        return function(){
+            if ( this.checked ){
+                CommaTable.add(c);
+            } else {
+                CommaTable.remove(c);
+            }
+            Tunings.go();
+        }
+    },
+    makeFilterTable : function(){
+        this.filterTable.html(HtmlGen.caption("filter by fraction " + HtmlSymbols.rightArrow + " location"));
+        var headerRow = new HtmlGen.TR();
+        headerRow.pushAllTh(["active", "fraction", "2", "3", "5", "7", "11", "", "x", "y", "remove"]);
+        $(headerRow.get()).appendTo(this.filterTable);
+    },
+    makeEtFilterTable : function(){
+        var row = new HtmlGen.TR();
+        row.pushTd("filter by suggested for ET");
+        row.pushTd(HtmlGen.text({ id: "etFilter", size: 7}));
+        row.appendTo(this.etFilterTable);
+    },
+    addFilterRow : function(){
+        var row = new HtmlGen.TR();
+        row.pushTd(HtmlGen.checkbox(false, {id: "filterCheck" + this.filterRowCount, index: this.filterRowCount, onchange: "UI.filterRowActivatedChange(this)"}));
+        row.pushTd(HtmlGen.text({ id: "filterFraction" + this.filterRowCount, size: 12}));
+        for ( var i=0; i<5; i++ ){
+            row.pushTd(HtmlGen.text({ id: "filterExpon" + this.filterRowCount + "primeIndex" + i, size: 3}));
+        }
+        row.pushTd(HtmlSymbols.rightArrow);
+        row.pushTd(HtmlGen.text({ id: "filterX" + this.filterRowCount, size: 3}));
+        row.pushTd(HtmlGen.text({ id: "filterY" + this.filterRowCount, size: 3}));
+        row.pushTd(HtmlGen.inputBtn(" ", { id: "filterRemoveBtn" + this.filterRowCount, onclick: "UI.removeFilterRow(this)", index: this.filterRowCount}));
+        $(row.get()).appendTo(this.filterTable);
+        this.filterRowCount++;
+    },
+    removeFilterRow : function(btn){
+        var doomed = $(btn).attr("index") - 0;
+        delete this.filterCriteria[doomed];
+        $(btn).parent().parent().remove();
+    },
+    getFilterCriterion : function(index){
+        var xString = document.getElementById("filterX" + index).value;
+        var yString = document.getElementById("filterY" + index).value;
+        if ( xString.length == 0 || !isInteger(xString) || yString.length == 0 || !isInteger(yString) ){
+            return { error : "x and y must be integers" };
+        }
+        var x = xString - 0;
+        var y = yString - 0;
+        var fracString = document.getElementById("filterFraction" + index).value;
+        var f = frac.prototype.fromString(fracString, 5);
+        if ( f ){
+            for ( var i=0; i<5; i++ ){
+                document.getElementById("filterExpon" + index + "primeIndex" + i).value = f.expons[i];
+            }
+        } else {
+            var expons = [];
+            for ( var i=0; i<5; i++ ){
+                var str = document.getElementById("filterExpon" + index + "primeIndex" + i).value;
+                if ( str.length == 0 || !isInteger(str) ){
+                    return { error : "either enter a valid fraction or integer exponents" };
+                }
+                var expo = str - 0;
+                expons.push(expo);
+            }
+            f = fracFromExpons(expons);
+            document.getElementById("filterFraction" + index).value = f.toString();
+        }
+        return new FilterCriterion(f, x, y);
+    },
+    filterRowActivatedChange : function(check){
+        var index = $(check).attr("index") - 0;
+        if ( check.checked ){
+            var filterCrit = this.getFilterCriterion(index);
+            if ( "error" in filterCrit ){
+                alert(filterCrit.error);
+                delete this.filterCriteria[index];
+            } else {
+                this.filterCriteria[index] = filterCrit;
+            }
+        } else {
+            delete this.filterCriteria[index];
+        }
+    },
+    init : function(){
+        this.filterRowCount = 0;
+        this.filterCriteria = {};
+        this.UITable = $("#UITable");
+        this.commaTable = $("#commaTable");
+        this.commaTableLeft = $("#commaTableLeft");
+        this.commaTableRight = $("#commaTableRight");
+        this.filterTable = $("#filterTable");
+        this.etFilterTable = $("#etFilterTable");
+        var sliderWidth = 900;
+        Slider.createExponentialRangeSlider(this, "errorSliderMinMin", "errorSliderMin", "errorSliderMax", "errorSliderMaxMax",
+            "UITable", "error range", "errorSlider", sliderWidth, null, this.errorSliderStop
+        );
+        Slider.createExponentialRangeSlider(this, "spreadSliderMinMin", "spreadSliderMin", "spreadSliderMax", "spreadSliderMaxMax",
+            "UITable", "spread range", "spreadSlider", sliderWidth, null, this.spreadSliderStop
+        );
+        Slider.createLinearSlider(this, "rankParaMin", "rankPara", "rankParaMax", "UITable", "rank parameter", "rankParaSlider", sliderWidth, null, this.rankParaSliderStop);
+        this.makeCommaTableHeader();
+        this.makeCommaTable();
+        this.makeFilterTable();
+        this.makeEtFilterTable();
+    },
+    errorSliderStop : function(){ Tunings.go(); },
+    spreadSliderStop : function(){ Tunings.go(); },
+    rankParaSliderStop : function(){ Tunings.go(); },
+    fillForm : function(){
+        var tuning = Tunings.tuningById[this.idOfTuningToBeOpened];
+        var matrix = tuning.matrix;
+        var numPrimes = tuning.matrix.length;
+        var phuFo = this.formWindow.PhuForm;
+        phuFo.createForm({
+            name : tuning.name,
+            computeTauStuff : true,
+            matrix : matrix,
+            numPrimes : numPrimes,
+            //tau2ButtonRats : 
+            odVal : tuning.octPart/Math.sqrt(tuning.b), 
+            tiltVal : 0,                                
+            //maxNumFunsOnButtons : 
+        });
+    }
+};
+function openTuning(id){
+    UI.idOfTuningToBeOpened = id;
+    //UI.formWindow = window.open("form.html", "_blank", "width=1400");
+    UI.formWindow = window.open("form.html", "_blank");
+}
+Tunings = {
+    counter : 0,
+    req : null,
+    all : null,
+    filtered : null,
+    rankPara : 0.625,
+    otherCommasColumnShowing : true,
+    fetchFromXML : function(){
+        this.req = new XMLHttpRequest();
+        this.req.open("GET", "tunings.xml", true);
+        this.req.onreadystatechange = this.xmlTuningsLoaded;
+        this.req.send(null);
+    },
+    xmlTuningsLoaded : function(evt){
+        if ( Tunings.req.readyState != 4 ) return;
+        Tunings.make();
+        UI.init();
+        Tunings.go();
+    },
+    make : function(){
+        giveNames();
+        var xTunings = this.req.responseXML.childNodes[0].children; // parsed xml containing the tunings
+        this.all = new Array();
+        var minError = Infinity;
+        var maxError = -Infinity;
+        var minSpread = Infinity;
+        var maxSpread = -Infinity;
+        for ( var i=0; i<xTunings.length; i++ ){
+            var xTuning = xTunings[i];
+            var octPart = xTuning.getAttribute("octPart");
+            var error = eval(xTuning.getAttribute("minMSE"));
+            var errorString = "%8.4f".sprintf(error);
+            var spread = eval(xTuning.getAttribute("buttonSpread"));
+            var spreadString = "%8.4f".sprintf(spread);
+            var matrixString = xTuning.getAttribute("matrix");
+            var matrix = eval(matrixString);
+            var m2 = matrix[0];
+            var m3 = matrix[1];
+            var m5 = matrix[2];
+            var m7 = matrix[3];
+            var m11 = matrix[4];
+            var name;
+            var nameFromXML = xTuning.getAttribute("name");
+            var givenName = nameAssArr[matrix];
+            if ( givenName ){
+                name = givenName;
+            } else {
+                name = nameFromXML;
+            }
+            if ( name == "kill" ) continue;
+            var tau2ValsString = xTuning.getAttribute("tau2Vals");
+            var tau2Vals = fraction.prototype.fracArrayFromString(tau2ValsString, true);
+            var tau2Denos = map(function(f) { return f.deno; }, tau2Vals);
+            var tau2Min = tau2Vals[0].toString();
+            var tau2Max = tau2Vals[tau2Vals.length-1].toString();
+            //var tau2Min = xTuning.getAttribute("tau2Min");
+            //var tau2Max = xTuning.getAttribute("tau2Max");
+            var tau1 = eval(xTuning.getAttribute("optTau1"));
+            var tau1String = "%8.4f".sprintf(tau1);
+            var tau2 = eval(xTuning.getAttribute("optTau2"));
+            if ( tau2 * (octPart-0) > 0.5 ) continue;
+            var tau2String = "%8.4f".sprintf(tau2);
+            //var maxSPO = xTuning.getAttribute("maxSPO") - 0;
+            //var maxCompl = xTuning.getAttribute("maxCompl") - 0;
+            var a = eval(xTuning.getAttribute("a"));
+            var aString = "%8.4f".sprintf(a);
+            var b = eval(xTuning.getAttribute("b"));
+            var bString = "%8.6f".sprintf(b);
+            //var link = HtmlGen.nodeWithAtts("a", "open", {href: makeHref(xTuning, name)});
+            var link = HtmlGen.inputBtn(" ", { onclick: "openTuning(" +this.counter+ ");"});
+            var tuningData = {
+                link: link, name: name, octPart: octPart, error: error, errorString: errorString, spread: spread, spreadString: spreadString,
+                matrix: matrix, m2: m2, m3: m3, m5: m5, m7: m7, m11: m11, tau2Min: tau2Min, tau2Max: tau2Max, tau2: tau2, tau2String: tau2String, tau1: tau1, tau1String: tau1String,
+                /*maxSPO: maxSPO, maxCompl: maxCompl,*/ a: a, aString: aString, b: b, bString: bString, tau2Vals: tau2Vals, tau2Denos: tau2Denos
+            };
+            var tuning = new Tuning(this.counter++);
+            importSecondIntoFirst(tuning, tuningData);
+            minError = Math.min(minError, tuning.error);
+            maxError = Math.max(maxError, tuning.error);
+            minSpread = Math.min(minSpread, tuning.spread);
+            maxSpread = Math.max(maxSpread, tuning.spread);
+            this.all.push(tuning);
+        }
+        this.updateRankings(this.rankPara);
+        UI.errorSliderMinMin = UI.errorSliderMin = minError * 0.99999;
+        UI.errorSliderMaxMax = maxError * 1.00001;
+        UI.spreadSliderMinMin = UI.spreadSliderMin = minSpread * 0.99999;
+        UI.spreadSliderMaxMax = maxSpread * 1.00001;
+        this.sortByRanking(-1);
+        this.tuningById = new Array(this.all.length);
+        for ( var i=0; i<this.all.length; i++ ){
+            this.tuningById[this.all[i].id] = this.all[i];
+        }
+    },
+    generateTable : function(list){
+        var headingsArr = ["#", "open", "name", "octav<br/>part", "error", "spread", "rank", "2", "3", "5", "7", "11", "tau2<br/>Min", "tau2<br/>Max", "tau1", "tau2", /*"max<br/>spo", "max<br/>compl",*/ "a", "b"];
+        if ( arguments.length < 1 ){
+            list = this.all;
+        }
+        var tuningsList = $("#tuningsList");
+        tuningsList.html("");
+        // start generating pre-header
+        var preHeaderAtts = { align : "right", colspan : headingsArr.length};
+        var removeRow = $("<tr></tr>");
+        var showRow = $("<tr></tr>");
+        var mustntRow = $("<tr></tr>");
+        var mustRow = $("<tr></tr>");
+        var removeTd = HtmlGen.td("remove this column", preHeaderAtts);
+        var showTd = HtmlGen.td("show whether comma in kernel", preHeaderAtts);
+        var mustntTd = HtmlGen.td("require comma not to be in kernel", preHeaderAtts);
+        var mustTd = HtmlGen.td("require comma to be in kernel", preHeaderAtts);
+        $(removeTd).appendTo(removeRow);
+        $(showTd).appendTo(showRow);
+        $(mustntTd).appendTo(mustntRow);
+        $(mustTd).appendTo(mustRow);
+        // finish generating pre-header and generate header
+        var maybe = "Whatever";
+        var no    = "NotInKernel";
+        var yes   = "InKernel";
+        var removeBtn = "RemoveButton";
+        var alignCenter = {align: "center"};
+        var visibleCommas = CommaTable.showing;
+        var head = new HtmlGen.TR();
+        head.pushAllTh(headingsArr);
+        for ( var i=0; i<visibleCommas.length; i++ ){
+            var c = visibleCommas[i];
+            var myComma = Commata[c];
+            $(HtmlGen.td(HtmlGen.nodeWithAtts("input", "", {type: "button", id: c + removeBtn}), alignCenter)).appendTo(removeRow);
+            var must = myComma.mustBeInKernel;
+            var mustNot = myComma.mustNotBeInKernel;
+            var perhaps = !(must || mustNot);
+            $(HtmlGen.td(HtmlGen.makeRadioWithId(c, c + maybe, perhaps, ""), alignCenter)).appendTo(showRow);
+            $(HtmlGen.td(HtmlGen.makeRadioWithId(c, c +  no ,  mustNot, ""), alignCenter)).appendTo(mustntRow);
+            $(HtmlGen.td(HtmlGen.makeRadioWithId(c, c + yes ,  must,    ""), alignCenter)).appendTo(mustRow);
+            if ( useJsMath ){
+                //head.pushTh(HtmlGen.span(Commata[c].val.toLatex(), { "class" : "math", id : "xxx" + c}));
+                head.pushTh(Commata[c].val.toLatex(), { "class": "math", id: "xxx" + c, whatcomma: c});
+            } else {
+                head.pushTh(Commata[c].val.toString3Rows(), { whatcomma: c });
+            }
+        }
+        $(HtmlGen.td("")).appendTo(removeRow);
+        $(HtmlGen.td(HtmlGen.nodeWithAtts("input", "", {type: "button", id: "hideOtherCommasBtn", value: "hide this column"}), { whatColumn: "otherCommas", align: "center" })).appendTo(removeRow);
+        head.pushTh("kernel base", { whatColumn: "kernelBase" });
+        head.pushTh("other commas in kernel", { whatColumn: "otherCommas" });
+        var headings = head.get();
+        removeRow.appendTo(tuningsList);
+        showRow.appendTo(tuningsList);
+        mustntRow.appendTo(tuningsList);
+        mustRow.appendTo(tuningsList);
+        $(headings).appendTo(tuningsList);
+        for ( var c in Commata ){
+            var elt = document.getElementById("xxx" + c);
+            if ( !elt ) continue;
+            jsMath.ProcessElement(elt);
+        }
+         
+        // add handlers to radios and buttons
+        for ( var i=0; i<visibleCommas.length; i++ ){
+            var c = visibleCommas[i];
+            var myComma = Commata[c];
+            document.getElementById( c + yes ).onchange = this.makeMustBeInKernelFunction(c);
+            document.getElementById( c +  no ).onchange = this.makeMustNotBeInKernelFunction(c);
+            document.getElementById(c + maybe).onchange = this.makeDontCareInKernelFunction(c);
+            document.getElementById(c + removeBtn).onclick = this.makeCommaRemoveFunction(c);
+        }
+        document.getElementById("hideOtherCommasBtn").onclick = this.hideOtherCommas;
+        document.getElementById("showOtherCommasBtn").onclick = this.showOtherCommas;
+        // make main part of table
+        var htmlCheckMarkSymbol = "&#10003";
+        var space = "&nbsp;"
+        for ( var i=0; i<list.length; i++ ){
+            var t = list[i];
+            // main columns
+            var rankStr = "%8.3f".sprintf(t.rank);
+            var rowArr = [i+1 ,t.link, t.name, t.octPart, t.errorString, t.spreadString, rankStr, t.m2, t.m3, t.m5, t.m7, t.m11, t.tau2Min, t.tau2Max,
+                t.tau1String, t.tau2String, /*t.maxSPO, t.maxCompl,*/ t.aString, t.bString];
+            var row = $(HtmlGen.makeTableRow(rowArr));
+            // columns with the checkmarks
+            for ( var j=0; j<visibleCommas.length; j++ ){
+                var c = visibleCommas[j];
+                if ( t.commaInKernel(c) ){
+                    $(HtmlGen.td(htmlCheckMarkSymbol, {align: "center", whatcomma: c})).appendTo(row);
+                } else {
+                    $(HtmlGen.td("-", {align: "center" /*,whatcomma: c*/})).appendTo(row);
+                }
+            }
+            var allCommas = CommaTable.all;
+            var commaListHtml = "";
+            var seperator = "";
+            // kernel base
+            var numLinIndeFound = 0;
+            var firstComma, secondComma, thirdComma;
+            for ( var j=0; j<allCommas.length; j++ ){
+                var c = allCommas[j];
+                var myComma = Commata[c];
+                if ( t.commaInKernel(c) ){
+                    if ( numLinIndeFound == 0 ){
+                        firstComma = j;
+                        numLinIndeFound++;
+                        commaListHtml += seperator + HtmlGen.span(myComma.val.toString(), { whatComma: c }); seperator = ", ";
+                    } else {
+                        if ( numLinIndeFound == 1 ){
+                            secondComma = j;
+                            numLinIndeFound++;
+                            commaListHtml += seperator + HtmlGen.span(myComma.val.toString(), { whatComma: c });
+                        } else {
+                            if ( CommaTable.linearRelations[firstComma][secondComma][j].length > 0 ){
+                                // it is linear dependent on the other ones, so skip it
+                                continue;
+                            }
+                            // add our last comma and break
+                            commaListHtml += seperator + HtmlGen.span(myComma.val.toString(), { whatComma: c });
+                            thirdComma = j;
+                            break;
+                        }
+                    }
+                }
+            }
+            $(HtmlGen.td(commaListHtml, { whatColumn: "kernelBase" })).appendTo(row);
+            // column for remaining commas
+            commaListHtml = "";
+            seperator = "";
+            var numExtra = 0;
+            for ( var j=0; j<allCommas.length; j++ ){
+                if ( j == firstComma || j == secondComma || j == thirdComma ) continue; // already showing in kernel base
+                var c = allCommas[j];
+                var myComma = Commata[c];
+                if ( myComma.showing ) continue;           // no need to show it twice, as checkmark, and in list
+                //if ( myComma.vec[4] != 0 ) continue; 
+                if ( t.commaInKernel(c) ){
+                    commaListHtml += seperator + HtmlGen.span(myComma.val.toString(), { whatComma: c });
+                    seperator = ", ";
+                    numExtra++;
+                    if ( numExtra * Math.log(myComma.val.deno) >= 17 ) break; // to do: better have a mouse over thingy saying "even more"
+                }
+            }
+            $(HtmlGen.td(commaListHtml, { whatColumn: "otherCommas" })).appendTo(row);
+            row.appendTo(tuningsList);
+        }
+        // add tooltips
+        for ( var c in Commata ){
+            var jqSel1 = "span[whatcomma=" + c + "]";
+            var jqSel2 = "td[whatcomma=" + c + "]";
+            var jqSel3 = "th[whatcomma=" + c + "]";
+            var jqSel = jqSel1 + ", " + jqSel2 + ", " + jqSel3;
+            $(jqSel).mouseover(this.makeCommaTooltipMouseOverFun(c)).mousemove(this.commaTooltipMouseMoveFun).mouseout(this.commaTooltipMouseOutFun);
+        }
+        if ( !this.otherCommasColumnShowing ){
+            this.hideOtherCommas();
+        }
+    },
+    hideOtherCommas : function(){
+        $("td[whatColumn=otherCommas], th[whatColumn=otherCommas]").hide();
+        $("#showOtherCommasBtn").show();
+        Tunings.otherCommasColumnShowing = false;
+    },
+    showOtherCommas : function(){
+        $("td[whatColumn=otherCommas], th[whatColumn=otherCommas]").show();
+        $("#showOtherCommasBtn").hide();
+        Tunings.otherCommasColumnShowing = true;
+    },
+    makeMustBeInKernelFunction : function(c){
+        return function(){
+            Commata[c].mustBeInKernel = true;  Commata[c].mustNotBeInKernel = false; Tunings.go();
+            setKernelClass.call($("tr[forComma=" +c+ "]"), "inKernel");
+        }
+    },
+    makeMustNotBeInKernelFunction : function(c){
+        return function(){
+            Commata[c].mustBeInKernel = false;  Commata[c].mustNotBeInKernel = true; Tunings.go();
+            setKernelClass.call($("tr[forComma=" +c+ "]"), "notInKernel");
+        }
+    },
+    makeDontCareInKernelFunction : function(c){
+        return function(){
+            Commata[c].mustBeInKernel = false;  Commata[c].mustNotBeInKernel = false; Tunings.go();
+            setKernelClass.call($("tr[forComma=" +c+ "]"), "whetherInKernel");
+        }
+    },
+    makeCommaRemoveFunction : function(c){
+        return function(){
+            CommaTable.remove(c);
+            document.getElementById(c + "CheckBox").checked = false;
+            Tunings.go();
+        }
+    },
+    chosen : function(tuning){
+        var err = tuning.error;
+        if ( err < UI.errorSliderMin ) return false;
+        if ( err > UI.errorSliderMax ) return false;
+        var spread = tuning.spread;
+        if ( spread < UI.spreadSliderMin ) return false;
+        if ( spread > UI.spreadSliderMax ) return false;
+        for ( var i=0; i<CommaTable.showing.length; i++ ){
+            var c = CommaTable.showing[i];
+            var myComma = Commata[c];
+            if ( myComma.mustBeInKernel || myComma.mustNotBeInKernel ){
+                var isInKernel = tuning.commaInKernel(c);
+                if ( ( isInKernel && myComma.mustNotBeInKernel ) || ( (!isInKernel) && myComma.mustBeInKernel ) ){
+                    return false;
+                }
+            }
+        }
+        // filter by fraction -> location
+        for ( var index in UI.filterCriteria ){
+            var crit = UI.filterCriteria[index];
+            if ( !tuning.mapsTo(crit.f.expons, [crit.x, crit.y]) ) return false;
+        }
+        var et = valueOfID("etFilter");
+        if ( et.length && isNaturalNumber(et) ){
+            et = et - 0;
+            if ( !arrayContainsElement(tuning.tau2Denos, et) ) return false;
+        }
+        return true;
+    },
+    go : function(){
+        var filterChecks = $("#filterTable input[type='checkbox']");
+        for ( var i=0; i<filterChecks.length; i++ ){
+            UI.filterRowActivatedChange(filterChecks[i]);
+        }
+        this.filtered = new Array();
+        for ( var i=0; i<this.all.length; i++ ){
+            var tuning = this.all[i];
+            if ( this.chosen(tuning) ){
+                this.filtered.push(tuning);
+            }
+        }
+        if ( UI.orderBy == "rank"){
+            this.sortByRanking(UI.rankPara, this.filtered);
+            return;
+        }
+    },
+    updateRankings : function(rankingParam, list){
+        if ( arguments.length < 2 ){
+            list = this.all;
+        }
+        this.rankPara = rankingParam;
+        for ( var i=0; i<list.length; i++ ){
+            var t = list[i];
+            //t.rank = t.error * Math.pow(t.spread, rankingParam);
+            t.rank = (1-rankingParam)*Math.log(t.error) + rankingParam*Math.log(t.spread);
+        }
+    },
+    sortByRanking : function(rankingParam, list){
+        // use negative rankingParam to omit recalculation of rank
+        if ( arguments.length < 2 ){
+            list = this.all;
+        }
+        if ( rankingParam >= 0 ){
+            this.updateRankings(rankingParam, list);
+        }
+        Tuning.prototype.lessEq = lessEqByRank;
+        mergeSortObjects(list);
+        this.generateTable(list);
+    },
+    /*sortByError : function (list){
+        if ( arguments.length < 1 ){
+            list = this.all;
+        }
+        Tuning.prototype.lessEq = lessEqByError;
+        mergeSortObjects(list);
+        this.generateTable(list);
+    },
+    sortBySpread : function (list){
+        if ( arguments.length < 1 ){
+            list = this.all;
+        }
+        Tuning.prototype.lessEq = lessEqBySpread;
+        mergeSortObjects(list);
+        this.generateTable(list);
+    },*/
+    makeCommaTooltipMouseOverFun : function(commaName){
+        return function(e){
+            var newLine = "<br/>";
+            var myComma = Commata[commaName];
+            var tttxt = myComma.name + newLine;
+            tttxt += myComma.val.toCentString() + newLine;
+            if ( myComma.explanation ){
+                tttxt += myComma.explanation + newLine;
+            }
+            tttxt += "[" + arrayToString(myComma.vec) + "]";
+            $(this).append('<div id="commaTooltip"><div class="tipBody">' + tttxt + '</div></div>');    
+            $('#commaTooltip').css('top', e.pageY + 10 );
+            $('#commaTooltip').css('left', e.pageX + 20 );
+        }
+    },
+    commaTooltipMouseMoveFun : function(e){
+        $('#commaTooltip').css('top', e.pageY + 10 );
+        $('#commaTooltip').css('left', e.pageX + 20 );
+    },
+    commaTooltipMouseOutFun : function(e){
+        $(this).children('div#commaTooltip').remove();
+    }
+};
+function Tuning(id){
+    this.id = id;
+    this.inKernel = new Array(); // ass array mapping commas to true or false
+}
+Tuning.prototype.vecInKernel = function(vec){
+    var matrix = this.matrix;
+    // check scalar prod of first row of transposed matrix with vec to be zero or not
+    var sum = 0;
+    for ( var i=0; i<vec.length; i++ ){
+        sum += matrix[i][0] * vec[i];
+    }
+    if ( sum != 0 ) return false;
+    // check scalar prod of second row of transposed matrix with vec to be zero or not
+    sum = 0;
+    for ( var i=0; i<vec.length; i++ ){
+        sum += matrix[i][1] * vec[i];
+    }
+    return ( sum == 0 );
+}
+Tuning.prototype.mapsTo = function(vec, result){
+    var matrix = this.matrix;
+    var sum = 0;
+    for ( var i=0; i<vec.length; i++ ){
+        sum += matrix[i][0] * vec[i];
+    }
+    if ( sum != result[0] ) return false;
+    sum = 0;
+    for ( var i=0; i<vec.length; i++ ){
+        sum += matrix[i][1] * vec[i];
+    }
+    return ( sum == result[1] );
+}
+Tuning.prototype.commaInKernel = function(commaName){
+    if ( commaName in this.inKernel ){
+        return this.inKernel[commaName];
+    } else {
+        var result = this.vecInKernel(Commata[commaName].vec);
+        this.inKernel[commaName] = result;
+        return result; 
+    }
+}
+function lessEqByError(that){ return this.error <= that.error; }
+function lessEqBySpread(that){ return this.spread <= that.spread; }
+function lessEqByRank(that){ return this.rank <= that.rank; }
+function makeHref(tuning, name){
+    var atts = {
+        name : name,
+        matrix : tuning.getAttribute("matrix"),
+        //tau1 : tuning.getAttribute("optTau1"),
+        //tau2 : tuning.getAttribute("optTau2"),
+        //tau2Min : "" + tuning.getAttribute("tau2Min"),
+        //tau2Max : "" + tuning.getAttribute("tau2Max"),
+        //maxStepsPerOctave : tuning.getAttribute("maxSPO"),
+        //maxComplexity : tuning.getAttribute("maxCompl"),
+        a : tuning.getAttribute("a"),
+        b : tuning.getAttribute("b")
+    };
+    return "phuturePiano.html" + HtmlGen.makeQueryString(atts);
+}
+CommaTable = {
+    all : null,
+    showing : null,
+    linearRelations : null,
+    init : function(){
+        this.all = new Array();
+        this.showing = new Array();
+        for ( var c in Commata ){
+            if ( typeof Commata[c] == "function" ) continue;
+            this.all.push(c);
+            if ( Commata[c].showing ){
+                this.showing.push(c);
+            }
+        }
+        mergeSortObjects2(this.all, commaLessEqByComplexity2);
+    },
+    computeLinearRelations : function(){
+        this.linearRelations = new Array();
+        var numCommas = this.all.length;
+        for ( var i=0; i<numCommas-2; i++ ){
+            var comma1 = Commata[this.all[i]];
+            var vec1 = comma1.vec;
+            this.linearRelations[i] = new Array();
+            for ( var j=i+1; j<numCommas-1; j++ ){
+                var comma2 = Commata[this.all[j]];
+                var vec2 = comma2.vec;
+                this.linearRelations[i][j] = new Array();
+                for ( var k=j+1; k<numCommas; k++ ){
+                    var comma3 = Commata[this.all[k]];
+                    var vec3 = comma3.vec;
+                    var intRel = integerLinearCombineThird(vec1, vec2, vec3);
+                    this.linearRelations[i][j][k] = intRel;
+                }
+            }
+        }
+    },
+    collectShowing : function(){
+        for ( var c in Commata ){
+            if ( typeof Commata[c] == "function" ) continue;
+            if ( Commata[c].showing ){
+                this.showing.push(c);
+            }
+        }
+    },
+    remove : function(cRemove){
+        var removeAtIndex = -1;
+        for ( var i=0; i<this.showing.length; i++ ){
+            if ( this.showing[i] == cRemove ){
+                removeAtIndex = i;
+                break;
+            }
+        }
+        if ( removeAtIndex == -1 ) return;
+        Commata[cRemove].showing = false;
+        Commata[cRemove].mustNotBeInKernel = false;
+        Commata[cRemove].mustBeInKernel = false;
+        setKernelClass.call($("tr[forComma=" +cRemove+ "]"), "invalid");
+        for ( var i=removeAtIndex; i<this.showing.length-1; i++ ){
+            this.showing[i] = this.showing[i+1];
+        }
+        this.showing.length--;
+    },
+    add : function(cAdd){
+        Commata[cAdd].showing = true;
+        Commata[cAdd].mustBeInKernel = false;
+        Commata[cAdd].mustNotBeInKernel = false;
+        this.showing.length = 0;
+        this.collectShowing();
+        setKernelClass.call($("tr[forComma=" +cAdd+ "]"), "whetherInKernel");
+    }
+};
+CommaTable.init();
+CommaTable.computeLinearRelations();
+</script>
+
+</head>
+    <body>
+        <table id="UITable"></table>
+        <button id="showCommaTableBtn" style="display: none;">show comma table</button>
+        <button id="showOtherCommasBtn" style="display: none;">show "other commas" column</button>
+        <table id="commaTable"><tr>
+            <td><table id="commaTableLeft" border="1"></table></td>
+            <td><table id="commaTableRight" border="1"></table></td>
+        </tr></table>
+        <table id="filterTable"></table>
+        <table id="etFilterTable"></table>
+        <button onclick="UI.addFilterRow();">add row</button>&nbsp;
+        <button onclick="Tunings.go();">refresh</button>&nbsp;
+        <table id="tuningsList" border="2"></table>
+    </body>
+</html>
+
+<script type="text/javascript" language="javascript">
+    Tunings.fetchFromXML();
+</script>
