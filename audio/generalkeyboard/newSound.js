@@ -1,6 +1,11 @@
 var soundObj = null;
 var microphoneObj = null;
 var rafID = -1;
+var BASE_FREQ = 120;
+
+
+var HALF_BASE_FREQ = BASE_FREQ/2;
+
 
 function soundMouseButtonClick(elt, evt){
 	var soundMouseBtn   = document.getElementById('soundMouseBtn');
@@ -64,7 +69,7 @@ function soundButtonClick(elt, evt){
 function getCurrentFrequency(){
 	var mouseIntCoords = Keyboard.mouseIntCoordsFromMouseGraphicsCoords(mouse.x, mouse.y);
 	var pitch = Keyboard.getPitchAtVec(mouseIntCoords);
-	var frequency = Math.pow(2, pitch) * 216;
+	var frequency = Math.pow(2, pitch) * BASE_FREQ;
 	return frequency;
 }
 function SoundObj(){
@@ -110,7 +115,7 @@ MicrophoneObj.prototype.updatePitch = function(time){
 	if (freqHz===-1){
 		document.getElementById('microphoneHzLabel').textContent = 'low volume';
 	} else {
-		var pitch = Math.log(freqHz/108)/Math.LN2;
+		var pitch = Math.log(freqHz/HALF_BASE_FREQ)/Math.LN2;
 		var sungKeys = Keyboard.intGrid.filter(function(coords){
 			return Math.abs(Keyboard.getPitchAtVec(coords) - pitch) < 0.45/31;
 		});
