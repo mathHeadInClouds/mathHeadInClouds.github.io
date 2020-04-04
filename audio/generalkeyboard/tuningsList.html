@@ -3,6 +3,7 @@
 <head>
 <link href="../jQueryCss/jquery.ui.all.css" rel="stylesheet" type="text/css"/>
 <link href="tuningList.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="tools2020.js"></script>
 <script type="text/javascript" src="../jquery-1.5.1.min.js"></script>
 <script type="text/javascript" src="../jquery-ui-1.8.11.custom.min.js"></script>	
 <script type="text/javascript" src="htmlGeneratorTools.js"></script>
@@ -465,7 +466,7 @@ Tunings = {
                 //head.pushTh(HtmlGen.span(Commata[c].val.toLatex(), { "class" : "math", id : "xxx" + c}));
                 head.pushTh(Commata[c].val.toLatex(), { "class": "math", id: "xxx" + c, whatcomma: c});
             } else {
-                head.pushTh(Commata[c].val.toString3Rows(), { whatcomma: c });
+                head.pushTh(Commata[c].val.toHTML(), { whatcomma: c });  // old: toString3Rows
             }
         }
         $(HtmlGen.td("")).appendTo(removeRow);
