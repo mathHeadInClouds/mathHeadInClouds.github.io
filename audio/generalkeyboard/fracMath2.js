@@ -1,4 +1,19 @@
 // fracMath2.js
+
+function makeFractionElt(enumerator, denominator){
+    var div = document.createElement('div');
+    var enumeratorElt = document.createElement('span');
+    var denominatorElt = document.createElement('span');
+    enumeratorElt.classList.add('enumerator');
+    denominatorElt.classList.add('denominator');
+    div.classList.add('fraction');
+    enumeratorElt.textContent = enumerator;
+    denominatorElt.textContent = denominator;
+    div.appendChild(enumeratorElt);
+    div.appendChild(denominatorElt);
+    return div;
+}
+
 function frac(enu, deno, expons){
     // fraction enu/deno, with only certain prime factors
     // the exponents of those prime factors are stored in expons
@@ -418,6 +433,12 @@ fraction.prototype.toString3Rows = function(){
     line2 += br;
     var line3 = this.deno;
     return line1 + line2 + line3;
+}
+fraction.prototype.toDom = function(){
+    return makeFractionElt(this.enu, this.deno);
+}
+fraction.prototype.toHTML = function(){
+    return this.toDom().outerHTML;
 }
 fraction.prototype.toLatex = function(){
     return "\\frac{" + this.enu + "}{" + this.deno + "}";
