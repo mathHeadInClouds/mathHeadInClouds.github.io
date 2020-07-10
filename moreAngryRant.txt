@@ -1,5 +1,4 @@
 And if the feature does/would possibilitate the authorship of "unsavory" code? Then what? What of it? WHAT OF IT??!
 If all such features were removed from JavaScript, then JavaScript would mutate into a "1001 training wheels language",
 a language for uncreative dimwits. What would be so great about having one more of those? We already have JAVA, I think
-that's sufficient. If "training wheels" are so dear to you, please go play with your marbles, write your JAVA code,
-leave us adults alone, and most importantly, keep your nanny finger up your own nose.
+that's sufficient. If "training wheels" are so dear to you, please go play with your marbles, bye.
