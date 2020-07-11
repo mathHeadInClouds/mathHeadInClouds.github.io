@@ -1,19 +1,5 @@
 var Lib;
 var testRunner = null;
-
-/*
-var Joe = { name: 'Joe' }, Jane = { name: 'Jane' }, Apple = { name: 'Apple' }, Orange = { name: 'Orange' }, Pear = { name: 'Pear' };
-function addlike(person, fruit){
-    person.likes = person.likes || []; fruit.likedBy = fruit.likedBy || [];
-    person.likes.push(fruit); fruit.likedBy.push(person);
-}
-addlike(Joe, Apple);addlike(Joe, Orange);addlike(Jane, Apple);addlike(Jane, Pear);
-var Chief = { people: [Joe, Jane], fruits: [Apple, Orange, Pear] };
-var frozChief = JSON.SiberiaSimple.forestify(Chief);
-
-nut = {name: 'nut'}; bolt = {name: 'bolt'}; nut.needs = bolt; bolt.needs = nut;
-*/
-
 function TestRunner(lib, nodes, testName, selectedSizes, doug_active, siberia_active){
 	this.errorSymbol = lib.errorSymbolSVG(0.2).template();
 	this.lib = lib;
@@ -536,7 +522,7 @@ function createLibrary(){
 					return thRowspan3(
 						input.A({type:'checkbox'})
 						.K(testName, key, 'check')
-						.p('checked')(key==='siberia')
+						.p('checked')(key==='siberia'||key==='doug')
 						.E('change','algorithmCheckChange')
 					);
 				}
@@ -586,6 +572,8 @@ function createLibrary(){
 				).toggler('testFeedback', testName);
 			}
 			var main = div(
+				a.A({href: 'https://github.com/mathHeadInClouds/siberia'})(h2('goto github repository / readme')),
+				h1('speed tests'),
 				table(tr.M(tabHead)(Object.keys($lib.testParameters))),
 				div.K('outerContainer')(
 					h1(Unicode.bigDownTriangle + Unicode.nbsp + 'description')
