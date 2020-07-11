@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>speed tests</title>
+    <style type="text/css">
+    	svg { display: inline-block; }
+        td.tabHead.inactive, td.tabHead.inactive>a {
+            cursor: pointer;
+        }
+        td.tabHead.active,td.tabHead.active>a {
+            cursor: text;
+        }
+        td.tabHead.active>a {
+            font-weight: bold;
+            text-decoration: none;
+            color: black;
+        }
+        td.tabHead>a {
+            font-size: 30px;
+        }
+        td.tabHead {
+            border-top: 2px solid black;
+            border-right: 2px solid black;
+            border-top-right-radius: 20px;
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+        td.tabHead.active {
+            border-top: 5px solid black;
+            border-right: 5px solid black;
+            background-color: #eee;
+        }
+        .descriptionHeading {
+            cursor: pointer;
+        }
+        div.description {
+            font-size: 1.5em;
+        }
+        table.speedTest {
+            border-collapse: collapse;
+            border-spacing: 0;
+            user-select: none;
+        }
+        table.speedTest th {
+            font-size: 1.5em;
+        }
+        table.speedTest th.columnHead {
+            padding-left: 0.5em;
+            padding-right: 0.5em;
+            text-align: center;
+        }
+        table.speedTest td {
+            font-size: 1.5em;
+            padding-left: 0.8em;
+            padding-right: 0.8em;
+            text-align: right;
+        }
+        table.speedTest td.error {
+            padding-left: 0.3em;
+            padding-right: 0.3em;
+            text-align: center;
+        }
+        table.speedTest td.error svg{
+            cursor: pointer;
+        }
+        table.speedTest .borderbot {
+            border-bottom: 1px solid black;
+        }
+        table.speedTest th.handle {
+            text-align: center;
+        }
+        table.speedTest th.handle div.inner{
+            cursor: w-resize;
+            z-index: 1000;
+        }
+        table.speedTest th.hilite {
+            background-color: orange;
+        }
+        table.speedTest td.selected {
+            background-color: #ccc;
+        }
+        table.speedTest th.handle div.outer {
+            display: inline-block;
+        }
+        table.speedTest th.topLeftCorner {
+            text-align: left;
+            font-weight: normal;
+        }
+    </style>
+	
+	<script src="../thirdparty/googleStringTools.js"></script>
+	<script src="../thirdparty/esprima.js"></script>
+	<script src="../thirdparty/escodegen.browser.js"></script>
+    <script src="js/douglascrockford/cycle.js"></script>
+    <script src="js/siberia.js"></script>
+	<script src="js/fiat.js"></script>
+	<script src="js/namedCharacters.js"></script>
+    <script src="js/assets.js"></script>
+    <script src="js/speedTest.js"></script>
+    <script src="js/speed.js"></script>
+
+</head>
+<body onload='bodyOnload()'></body>
+</html>
