@@ -66,7 +66,7 @@
         var objects = [], inverseObjects = new WeakMap(), forest = [];
         var atomBuckets = {}, counter = 0, atoms = [];
         var tos, aKeys_sing, aKeys_obj, aKeys, oKeys, oKeysIdx, new_object, ty;
-        function discover_RECURSIVE(obj){ // eanier to read version which, unfortunately, will generate stack overflow if used on extremely large objects - UNUSED
+        function discover(obj){
             var currentIdx = objects.length;
             inverseObjects.set(obj, currentIdx);
             objects.push(obj);
@@ -109,13 +109,13 @@
                     if (inverseObjects.has(val)){
                         forest[currentIdx][key] = inverseObjects.get(val);
                     } else {
-                        forest[currentIdx][key] = discover_RECURSIVE(val);
+                        forest[currentIdx][key] = discover(val);
                     }
                 }
             }
             return currentIdx;
         }
-        function discover(){
+        function discover_NonRecursive(){
             while (true){
                 while (true){
                     tos = topOf(stack);
@@ -197,7 +197,7 @@
                 stack.push(new_object);
             }
         }
-        discover(); // if you use recursive version, pass root as argument
+        discover(root);
 //console.log(atomBuckets);
         var types = [], sortedAtoms = [], reorder = [], newCounter = 0;
         Object.keys(atomBuckets).map(function(t){ return TYPE_IDX[t]; }).sort(ascending).forEach(function(typeIdx){
