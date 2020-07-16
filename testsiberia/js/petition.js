@@ -246,6 +246,7 @@ function createLibrary(){
 				$lib.dagShed(),
 				p.C('rant')('Here is our undirected cycle:'),
 				$lib.ourUndirectedCycle(),
+				/*
 				p.C('rant')(
 					'what ', em('undirected cycle in a directed graph'), ' means is: there is more than one way of getting from some node to some different node.',
 					' Here, there is more than one way to get from root to bolt: directly, and via nut.',
@@ -253,7 +254,12 @@ function createLibrary(){
 					' Let\'s call it ', em('uncydir'), ', then a the definition of ', em('directed tree'), ' is: "directed graph without any uncydirs". And directed trees are exactly what ', code('JSON'),
 					' is able to properly ', code('stringify'), ' while DAGs are what ', code('JSON'), ' must stop pretending being able to properly ', code('stringify'), '.'
 				),
-				p.C('rant')('Now, let\'s watch ', code('JSON'), ' put it\'s foot in it.'),
+				p.C('rant')('Now, let\'s watch ', code('JSON'), ' put it\'s foot in it.'),*/
+				p.C('rant')(
+					'what ', em('undirected cycle in a directed graph'), ' means is: there is more than one way of getting from some node to some different node.',
+					' Here, there is more than one way to get from root to bolt: directly, and via nut.',
+					' Now, let\'s watch ', code('JSON'), ' put it\'s foot in it.'
+				),
 				img.A({src:'../../img/hasTheOriginalUncydir.png'}),
 				p.C('rant')(' what\'s really cursed is that you ', em('cannot'), ' find the deficiency by logging the objects to console:'),
 				img.A({src:'../../img/theCursedThingIsThatYouCantSeeIt.png'}),
