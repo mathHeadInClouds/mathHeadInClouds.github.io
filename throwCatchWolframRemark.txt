@@ -1,0 +1,1 @@
+In Wolfram mathematica, the "throw result" thing isn't even unconventional. In that language, there is no 'try', there's only 'throw' and 'catch', and those 2 are designed for breaking out of loops. And you can use 'catch' to catch errors thrown by the system, or to catch what you threw yourself in order to break out a loop.
