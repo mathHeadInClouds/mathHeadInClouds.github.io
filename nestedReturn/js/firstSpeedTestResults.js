@@ -129,6 +129,7 @@ function createLibrary(){
 					"I uploaded the exact 4 tests you see here to ", a.A({href: "https://jsperf.com/"})("jsperf.com"),
 					" which is a website deisigned for exactly this purpose (sharing of speed tests)."
 				)
+				,p(a.A({href:"https://jsperf.com/nestedreturn"})("Here"), " is the link to jsperf going directly to those tests. If clicking that link and then the run button is too much work, here is a screen shot of the results:")
 				,img.A({src: "../../img/SO_POST_SPEED_TEST_1.png"})
 				,p("In the green boxes, the meaning of the big number on top (2.00, 1.88, 2.01, 1.93) is how often per second the test case finishes. As I said, about half a second it takes, that's where the 2 comes from.")
 				,p("I almost forgot. They all four work correctly.")
