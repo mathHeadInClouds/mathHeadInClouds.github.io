@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>transpiler battle: first speed test</title>
+    <style type="text/css">
+    	code {
+            background-color: #efd;
+            padding: 0.15em;
+            border: 1px solid #ccc;
+        }
+        p {
+            font-size: 1.2em;
+        }
+        pre {
+            font-size: 1.35em;
+            border: 0px solid black;
+            background-color: #e9e9e9;
+        }
+    </style>
+	
+	<script src="../../thirdparty/googleStringTools.js"></script>
+	<script src="../../thirdparty/esprima.js"></script>
+	<script src="../../thirdparty/escodegen.browser.js"></script>
+	<script src="../js/fiat.js"></script>
+	<script src="../js/namedCharacters.js"></script>
+    <script src="../js/firstSpeedTestResults.js"></script>
+
+<script type="textBucket" id="howCompliantVersionWorks">It should be obvious how that works; if so, skip this paragraph. While the result has not been found yet, local variable `the` is the empty object. Once the result has been found, that object will contain one key, called "result", containing the (...surprise...) result. We hence have to check at a suitable location/s if "the result is in yet", `return`ing if so. Not doing that would lead to wrong results; we want the *first* match (same as in Array.find). There could be more, and if we'd go on, the correct result might later be overwritten with a later match. *When* we do the check/s, and whether or not we do "extra" checks which aren't completely necessary but don't hurt, that has subtle influence on the run time, but not that much. So there are 2 more "respectable citizens". Namely, making that check only at the beginning of the function, and only as first statement of the for loop. I'm pretty sure (like 99.99999%) that the 3 "respetables" are all equivalent, and differ only so slightly in performance. Maybe I overlooked something, and one of them doesn't work in some rare circumstances. I don't know. I somehow can't get myself to continue thinking about it until that got to 100% - though I'm usually fanatical about being certain about things, like, my code working. Not here, because of the feeling "I shouldn't have to think about this". We all have different things we enjoy doing during our pastime. If you enjoy spending your time thinking about *where* to put that `if (results are in) return` statement, knock yourself out. It's *your* time.</script>
+
+</head>
+<body onload='bodyOnload()'></body>
+</html>
