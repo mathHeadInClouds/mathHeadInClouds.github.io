@@ -109,7 +109,8 @@ function createLibrary(){
 	return fiat.dom.fiat([{
 		FIRST: function(div,p,a,code,pre,img,$lib){
 			var main = div(
-				p("Using ", a.A({href:"https://benchmarkjs.com/"})("benchmark js"),
+				p("Here the first of 2 speed tests concerning the \"throw result\" method. The second one is ", a.A({href: "secondSpeedTestResults.html"})('here'), ".")
+				,p("Using ", a.A({href:"https://benchmarkjs.com/"})("benchmark js"),
 					" for the run time measurements - it seems to me that's standard, so I'm using that.")
 				,p("Here is my awesome awesome \"evildoer\" function which I'm growing more and more proud of:")
 				,pre.coloredCode()(multiDimensionalFind_ThrowCatch.toString())
