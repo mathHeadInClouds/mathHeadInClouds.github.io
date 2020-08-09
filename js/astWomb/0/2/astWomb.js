@@ -398,11 +398,15 @@ var AstWomb = (function(){
 					if (prop in node){
 						argsArr.push(actionBook[type](node[prop]));
 					} else {
-						if ((type==="STRING")&&(ctorName==="AssignmentExpression")&&(node.type==="AssignmentPattern")&&(prop==="operator")){
-							debugger;
-							argsArr.push(actionBook[type]('='));
-						} else {
-							debugger; throw new Error('property not found. probably malformed data.');
+						if ( (node.type==='Literal')&&(type==='_STRING')&&((typeof node.regex)==='object')&&((prop==='pattern')||(prop==='flags')) ){
+							argsArr.push( actionBook._STRING(node.regex[prop]) )
+						} else{
+							if ((type==="STRING")&&(ctorName==="AssignmentExpression")&&(node.type==="AssignmentPattern")&&(prop==="operator")){
+								debugger;
+								argsArr.push(actionBook[type]('='));
+							} else {
+								debugger; throw new Error('property not found. probably malformed data.');
+							}
 						}
 					}
 				} else {
